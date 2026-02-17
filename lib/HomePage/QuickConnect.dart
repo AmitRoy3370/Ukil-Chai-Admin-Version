@@ -1,8 +1,14 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:http/http.dart' as http;
+import '../AdvocatePages/AdvocateFilterPage.dart';
 import '../Auth/AuthService.dart';
+import '../CaseRelatedPages/CaseHomePage.dart';
+import '../ChatRelatedPages/CenterAdminChatListScreen.dart';
 import '../QuestionPages/AskQuestionPage.dart';
+import '../Utils/BaseURL.dart' as BASE_URL;
 import 'QuickCard.dart';
 
 class QuickConnect extends StatelessWidget {
@@ -24,7 +30,7 @@ class QuickConnect extends StatelessWidget {
               "Quick Connect",
               style: TextStyle(
                 fontSize: 18,
-                color: Colors.white,
+                color: Colors.black,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -49,6 +55,10 @@ class QuickConnect extends StatelessWidget {
               subtitle: "Connect with specialized advocates",
               onTap : () {
                 print("Find Expert");
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => AdvocateFilterPage()),
+                );
               }
 
             ),
@@ -58,8 +68,45 @@ class QuickConnect extends StatelessWidget {
               icon: Icons.chat_bubble_outline,
               title: "Free Consult",
               subtitle: "15-min free consultation",
-              onTap:() {
+              onTap:() async {
                 print("Free Consult");
+
+                SharedPreferences prefs = await SharedPreferences.getInstance();
+                String userId = prefs.getString("userId") ?? "";
+                String token = prefs.getString("jwt_token") ?? "";
+
+                final response = await http.get(
+                  Uri.parse('${BASE_URL.Urls().baseURL}user/search?userId=$userId'),
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Authorization': 'Bearer $token',
+                  },
+                );
+
+                if (response.statusCode == 200) {
+                  final data = jsonDecode(response.body);
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CenterAdminChatListScreen(
+                        currentUserId: userId,
+                        currentUserName: data['name'],
+                      ),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'You need to log in first to fetch the data....',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+
               }
             ),
 
@@ -87,10 +134,18 @@ class QuickConnect extends StatelessWidget {
             // 4th Tile
             QuickCard(
               icon: Icons.calendar_month,
-              title: "Book Meeting",
-              subtitle: "Schedule consultation",
-              onTap: () {
-                print("Book Meeting");
+              title: "My Cases",
+              subtitle: "Case Details",
+              onTap: () async {
+                SharedPreferences prefs = await SharedPreferences.getInstance();
+                String userId = prefs.getString("userId") ?? "";
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CaseHomePage(),
+                  ),
+                );
               },
             ),
           ],

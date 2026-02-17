@@ -12,6 +12,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:advocatechaiadmin/Utils/BaseURL.dart' as baseURL;
 
+import '../Utils/AdvocateSpeciality.dart';
+
 class RegistrationPage extends StatefulWidget {
   const RegistrationPage({super.key});
 
@@ -42,6 +44,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final MapController mapController = MapController();
 
   Stream<Position>? _positionStream;
+
+  List<AdvocateSpeciality> selectedDistricts = [];
+
+  final List<String> bangladeshDistricts = AdvocateSpeciality.values
+      .map((e) => e.name)
+      .toList();
 
   @override
   void initState() {
@@ -94,6 +102,49 @@ class _RegistrationPageState extends State<RegistrationPage> {
     _positionStream!.listen((Position position) {
       _updateDevicePosition(position);
     });
+  }
+
+  void showDistrictDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, dialogSetState) {
+            return AlertDialog(
+              title: const Text("Select Specialist"),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView(
+                  children: bangladeshDistricts.map((district) {
+                    return CheckboxListTile(
+                      title: Text(district),
+                      value: selectedDistricts.contains(district),
+                      onChanged: (value) {
+                        dialogSetState(() {
+                          if (value == true) {
+                            selectedDistricts.add(
+                              AdvocateSpecialityExt.fromApi(district),
+                            );
+                          } else {
+                            selectedDistricts.remove(district);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Done"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _updateDevicePosition(Position position) async {
@@ -427,12 +478,32 @@ class _RegistrationPageState extends State<RegistrationPage> {
           ).showSnackBar(SnackBar(content: Text("Failed to add location...")));
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Registration Successful")),
+        final adminJoinResponse = await http.post(
+          Uri.parse("${baseURL.Urls().baseURL}adminJoinRequest/add/$userId"),
+          headers: {
+            'content-type': 'application/json',
+            'Authorization': "Bearer $token",
+          },
+          body: jsonEncode({
+            "userId": userId,
+            "advocateSpeciality": selectedDistricts,
+          }),
         );
 
-        if (kDebugMode) {
-          print("JWT TOKEN => $token");
+        if (adminJoinResponse.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Send admin Join Request successfully...."),
+            ),
+          );
+
+          if (kDebugMode) {
+            print("JWT TOKEN => $token");
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Failed to send admin join request")),
+          );
         }
       } else {
         if (kDebugMode) {
@@ -459,186 +530,202 @@ class _RegistrationPageState extends State<RegistrationPage> {
         title: const Text("Registration with Map"),
         backgroundColor: Colors.blue,
       ),
-      body: Stack(
-        children: [
-          FlutterMap(
-            mapController: mapController,
-            options: const MapOptions(
-              initialCenter: lat_lng.LatLng(23.8103, 90.4125),
-              initialZoom: 13.0,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate:
-                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                subdomains: const ['a', 'b', 'c'],
+      body: SingleChildScrollView(
+        child: Stack(
+          children: [
+            FlutterMap(
+              mapController: mapController,
+              options: const MapOptions(
+                initialCenter: lat_lng.LatLng(23.8103, 90.4125),
+                initialZoom: 13.0,
               ),
-              MarkerLayer(markers: _markers),
-            ],
-          ),
-          Positioned(
-            top: 10,
-            left: 10,
-            right: 10,
-            child: Card(
-              elevation: 5,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: searchController,
-                        decoration: const InputDecoration(
-                          hintText: "Search place...",
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.search),
-                      onPressed: searchPlace,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: showForm ? 310 : 20,
-            left: 10,
-            child: Row(
               children: [
-                const Text("Open Registration Form"),
-                Switch(
-                  value: showForm,
-                  onChanged: (val) {
-                    setState(() {
-                      showForm = val;
-                    });
-                  },
+                TileLayer(
+                  urlTemplate:
+                      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  subdomains: const ['a', 'b', 'c'],
                 ),
+                MarkerLayer(markers: _markers),
               ],
             ),
-          ),
-          if (showForm)
             Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
+              top: 10,
+              left: 10,
+              right: 10,
               child: Card(
-                margin: const EdgeInsets.all(10),
-                elevation: 6,
+                elevation: 5,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Stack(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(15),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const SizedBox(
-                              height: 20,
-                            ), // Space for close button
-                            TextField(
-                              controller: nameController,
-                              decoration: const InputDecoration(
-                                labelText: "Name",
-                              ),
-                            ),
-                            TextField(
-                              controller: passwordController,
-                              obscureText: !_showPassword,
-                              decoration: InputDecoration(
-                                labelText: "Password",
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _showPassword
-                                        ? Icons.visibility
-                                        : Icons.visibility_off,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _showPassword = !_showPassword;
-                                    });
-                                  },
-                                ),
-                              ),
-                            ),
-
-                            TextField(
-                              controller: emailController,
-                              decoration: const InputDecoration(
-                                labelText: "Email",
-                              ),
-                            ),
-                            TextField(
-                              controller: phoneController,
-                              decoration: const InputDecoration(
-                                labelText: "Phone",
-                              ),
-                            ),
-                            TextField(
-                              controller: locationTextController,
-                              readOnly: true,
-                              decoration: const InputDecoration(
-                                labelText: "Location Info",
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            GestureDetector(
-                              onTap: pickImage,
-                              child: Container(
-                                height: 120,
-                                width: 120,
-                                decoration: BoxDecoration(border: Border.all()),
-                                child:
-                                    pickedImage == null && webImageBytes == null
-                                    ? const Icon(Icons.camera_alt, size: 50)
-                                    : kIsWeb
-                                    ? Image.memory(
-                                        webImageBytes!,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : Image.file(
-                                        pickedImage!,
-                                        fit: BoxFit.cover,
-                                      ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            ElevatedButton(
-                              onPressed: _submitForm,
-                              child: const Text("Submit Registration"),
-                            ),
-                          ],
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: searchController,
+                          decoration: const InputDecoration(
+                            hintText: "Search place...",
+                            border: InputBorder.none,
+                          ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () {
-                          setState(() {
-                            showForm = false;
-                          });
-                        },
+                      IconButton(
+                        icon: const Icon(Icons.search),
+                        onPressed: searchPlace,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-        ],
+            Positioned(
+              bottom: showForm ? 310 : 20,
+              left: 10,
+              child: Row(
+                children: [
+                  const Text("Open Registration Form"),
+                  Switch(
+                    value: showForm,
+                    onChanged: (val) {
+                      setState(() {
+                        showForm = val;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+            if (showForm)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Card(
+                  margin: const EdgeInsets.all(10),
+                  elevation: 6,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Stack(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(15),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(
+                                height: 20,
+                              ), // Space for close button
+                              TextField(
+                                controller: nameController,
+                                decoration: const InputDecoration(
+                                  labelText: "Name",
+                                ),
+                              ),
+                              TextField(
+                                controller: passwordController,
+                                obscureText: !_showPassword,
+                                decoration: InputDecoration(
+                                  labelText: "Password",
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _showPassword
+                                          ? Icons.visibility
+                                          : Icons.visibility_off,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _showPassword = !_showPassword;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ),
+
+                              TextField(
+                                controller: emailController,
+                                decoration: const InputDecoration(
+                                  labelText: "Email",
+                                ),
+                              ),
+                              TextField(
+                                controller: phoneController,
+                                decoration: const InputDecoration(
+                                  labelText: "Phone",
+                                ),
+                              ),
+                              TextField(
+                                controller: locationTextController,
+                                readOnly: true,
+                                decoration: const InputDecoration(
+                                  labelText: "Location Info",
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              GestureDetector(
+                                onTap: pickImage,
+                                child: Container(
+                                  height: 120,
+                                  width: 120,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(),
+                                  ),
+                                  child:
+                                      pickedImage == null &&
+                                          webImageBytes == null
+                                      ? const Icon(Icons.camera_alt, size: 50)
+                                      : kIsWeb
+                                      ? Image.memory(
+                                          webImageBytes!,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Image.file(
+                                          pickedImage!,
+                                          fit: BoxFit.cover,
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              ElevatedButton(
+                                onPressed: showDistrictDialog,
+                                child: const Text("Select Specialist"),
+                              ),
+
+                              Wrap(
+                                children: selectedDistricts
+                                    .map((d) => Chip(label: Text(d.apiValue)))
+                                    .toList(),
+                              ),
+                              const SizedBox(height: 20),
+                              ElevatedButton(
+                                onPressed: _submitForm,
+                                child: const Text("Submit Registration"),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            setState(() {
+                              showForm = false;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

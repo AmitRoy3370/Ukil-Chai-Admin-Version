@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as NavigatorPageRoute;
 import 'package:http/http.dart' as http;
 import 'dart:html' as html;
 
@@ -8,11 +9,20 @@ import 'package:advocatechaiadmin/AdvocatePages/AdvocateDetailsModel.dart';
 import 'package:advocatechaiadmin/Auth/AuthService.dart';
 import 'package:advocatechaiadmin/Utils/BaseURL.dart' as baseURL;
 
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 
 import 'dart:convert';
+
+import '../CaseRelatedPages/AddCaseRequestPage.dart';
+import '../CaseRelatedPages/case_model.dart';
+import '../ChatRelatedPages/chat_screen.dart';
+import '../PostRelatedPages/AdvocatePost.dart';
+import '../PostRelatedPages/PostService.dart';
+import '../PostRelatedPages/post_card.dart';
+import '../Utils/BaseURL.dart' as BASE_URL;
 
 class AdvocateDetails extends StatefulWidget {
   final AdvocateDetailsModel advocateDetailsModel;
@@ -24,6 +34,116 @@ class AdvocateDetails extends StatefulWidget {
 }
 
 class AdvocateDetailsState extends State<AdvocateDetails> {
+  int totalCases = 0;
+  bool loading = true;
+  List<AdvocatePost> posts = [];
+
+  double averageRating = 0.0;
+  int totalRatings = 0;
+  int highestRating = 0;
+
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    fetchTotalCases();
+    loadPosts();
+    fetchRatings();
+  }
+
+  Future<void> fetchRatings() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token') ?? '';
+
+    final response = await http.get(
+      Uri.parse(
+        "${BASE_URL.Urls().baseURL}advocate-rating/advocate/${widget.advocateDetailsModel.id}",
+      ),
+      headers: {"Authorization": "Bearer $token"},
+    );
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+
+      List data = [];
+
+      if (decoded is List) {
+        data = decoded;
+      } else if (decoded["data"] != null) {
+        data = decoded["data"];
+      }
+
+      if (data.isEmpty) return;
+
+      int sum = 0;
+      int maxRating = 0;
+
+      for (var r in data) {
+        int rating = r["rating"] ?? 0;
+        sum += rating;
+        if (rating > maxRating) maxRating = rating;
+      }
+
+      setState(() {
+        totalRatings = data.length;
+        averageRating = sum / data.length;
+        highestRating = maxRating;
+      });
+    }
+  }
+
+  Future<List?> fetchTotalCases() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token') ?? '';
+
+    print("advocate id :- ${widget.advocateDetailsModel.id}");
+
+    final response = await http.get(
+      Uri.parse(
+        "${baseURL.Urls().baseURL}case/advocate/${widget.advocateDetailsModel.id}",
+      ),
+      headers: {"Authorization": "Bearer $token"},
+    );
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is List) {
+        return decoded.map((e) => CaseModel.fromJson(e)).toList();
+      }
+
+      if (decoded["data"] != null) {
+        var list = (decoded["data"] as List)
+            .map((e) => CaseModel.fromJson(e))
+            .toList();
+
+        setState(() {
+          totalCases = list.length;
+        });
+
+        return list;
+      }
+
+      return [];
+    }
+    return null;
+  }
+
+  Future<void> loadPosts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token') ?? '';
+
+    final data = await PostService.fetchSpecificAdvocatesPosts(
+      widget.advocateDetailsModel.id,
+      token,
+    );
+    setState(() {
+      posts = data;
+      loading = false;
+    });
+  }
+
   /// ================= PROFILE IMAGE =================
   Future<Uint8List?> fetchProfileImage() async {
     final imageId = widget.advocateDetailsModel.profileImageId;
@@ -56,6 +176,28 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
       return response.bodyBytes;
     }
     return null;
+  }
+
+  // ---------------- GET USER NAME ----------------
+  Future<String> getNameFromUser(String userId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token') ?? '';
+
+    final url = "${BASE_URL.Urls().baseURL}user/search?userId=$userId";
+
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {
+        "content-type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body);
+      return body["name"] ?? "";
+    }
+    return "";
   }
 
   void downloadPdfWeb(List<int> bytes) {
@@ -120,10 +262,10 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("Advocate Details"),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white70,
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -156,7 +298,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
                   Text(
                     widget.advocateDetailsModel.name ?? "Unknown Advocate",
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: Colors.black,
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
@@ -166,7 +308,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
 
                   Text(
                     "${widget.advocateDetailsModel.experience ?? 0} years experience",
-                    style: TextStyle(color: Colors.grey.shade400),
+                    style: TextStyle(color: Colors.black),
                   ),
                 ],
               ),
@@ -212,16 +354,146 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
 
             const SizedBox(height: 20),
 
+            if (posts.isNotEmpty)
+              SizedBox(
+                height: 360,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: posts.length,
+                  itemBuilder: (context, index) {
+                    return SizedBox(
+                      width: 300,
+                      child: Card(
+                        child: SingleChildScrollView(
+                          child: PostCard(post: posts[index]),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+            const SizedBox(height: 20),
+
+            const SizedBox(height: 10),
+
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  buildStarRating(averageRating),
+
+                  const SizedBox(height: 6),
+
+                  Text(
+                    averageRating.toStringAsFixed(1),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+
+                  Text(
+                    "$totalRatings ratings",
+                    style: const TextStyle(color: Colors.black),
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  Text(
+                    "Highest rating: $highestRating",
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ],
+              ),
+            ),
+
             /// ================= CV BUTTON =================
             ElevatedButton.icon(
               onPressed: downloadAndOpenCV,
               icon: const Icon(Icons.picture_as_pdf),
               label: const Text("View CV"),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueGrey,
+                backgroundColor: Colors.green,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            /// ================= CASE REQUEST BUTTON =================
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+              onPressed: () async {
+                SharedPreferences prefs = await SharedPreferences.getInstance();
+                final token = prefs.getString('jwt_token') ?? '';
+                final userId = prefs.getString('userId') ?? '';
+
+                Navigator.push(
+                  context,
+                  NavigatorPageRoute.MaterialPageRoute(
+                    builder: (context) => AddCaseRequestPage(
+                      userId: userId,
+                      specialRequestedAdvocate: widget.advocateDetailsModel.id,
+                    ),
+                  ),
+                );
+              },
+              child: Text(
+                "Send Case request",
+                style: TextStyle(
+                  fontSize: 30,
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+              onPressed: () async {
+                SharedPreferences prefs = await SharedPreferences.getInstance();
+                final token = prefs.getString('jwt_token') ?? '';
+                final userId = prefs.getString('userId') ?? '';
+                final myName = await getNameFromUser(userId);
+
+                Navigator.push(
+                  context,
+                  NavigatorPageRoute.MaterialPageRoute(
+                    builder: (context) => ChatScreen(
+                      otherUser: widget.advocateDetailsModel.userId ?? '',
+                      othersName: widget.advocateDetailsModel.name ?? '',
+                      currentUser: userId,
+                      myName: myName ?? '',
+                    ),
+                  ),
+                );
+              },
+              child: Text(
+                "Chat with ${widget.advocateDetailsModel.name}",
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
@@ -287,6 +559,21 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
               ),
             ]
           : items.map((e) => _row(Icons.check_circle, e)).toList(),
+    );
+  }
+
+  Widget buildStarRating(double rating) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(5, (index) {
+        if (index < rating.floor()) {
+          return const Icon(Icons.star, color: Colors.amber, size: 22);
+        } else if (index < rating) {
+          return const Icon(Icons.star_half, color: Colors.amber, size: 22);
+        } else {
+          return const Icon(Icons.star_border, color: Colors.amber, size: 22);
+        }
+      }),
     );
   }
 }

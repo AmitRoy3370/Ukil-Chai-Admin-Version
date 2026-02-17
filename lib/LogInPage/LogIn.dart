@@ -5,10 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Auth/AuthService.dart';
+import '../ChatRelatedPages/user_active_service.dart';
 import '../RegistrationPage/RegistrationPage.dart';
 import 'package:advocatechaiadmin/Utils/BaseURL.dart' as baseURL;
 import 'dart:io';
 import 'dart:typed_data';
+
+import '../Utils/BaseURL.dart' as BASE_URL;
 
 class LogIn extends StatefulWidget {
   const LogIn({super.key});
@@ -61,7 +64,6 @@ class LogInState extends State<LogIn> {
       isVisible = true;
     });
 
-
     return true;
   }
 
@@ -97,15 +99,30 @@ class LogInState extends State<LogIn> {
         await prefs.setString("jwt_token", token);
         await prefs.setString("userId", userId);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Logged in successfully...")),
+        final adminResponse = await http.get(
+          Uri.parse("${BASE_URL.Urls().baseURL}admin/by-user/$userId"),
+          headers: {
+            'content-type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
         );
 
-        setState(() {
-          isVisible = true;
-          AuthService.saveToken(token);
-          AuthService.saveUserId(userId);
-        });
+        if (adminResponse.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Logged in successfully...")),
+          );
+
+          setState(() {
+            isVisible = true;
+            AuthService.saveToken(token);
+            AuthService.saveUserId(userId);
+            setUserActive(true);
+          });
+        } else {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("You can log in only as an admin at here....")));
+        }
       } else {
         ScaffoldMessenger.of(
           context,
@@ -119,9 +136,40 @@ class LogInState extends State<LogIn> {
     doesItVisible();
   }
 
+  void setUserActive(bool active) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('jwt_token');
+      String? userId = prefs.getString('userId');
+      if (userId != null) {
+        final response = await http.get(
+          Uri.parse("${BASE_URL.Urls().baseURL}user-active/user/$userId"),
+          headers: {
+            'content-type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final body = jsonDecode(response.body);
+
+          await UserActiveService.updateUserActive(
+            body["id"],
+            userId,
+            active,
+            token,
+          );
+        } else {
+          await UserActiveService.addUserActive(userId, active, token);
+        }
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -137,7 +185,7 @@ class LogInState extends State<LogIn> {
                 borderRadius: BorderRadius.all(Radius.circular(25.0)),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: Colors.red,
               contentPadding: EdgeInsets.all(10),
               hintStyle: TextStyle(color: Colors.grey, fontSize: 15),
             ),

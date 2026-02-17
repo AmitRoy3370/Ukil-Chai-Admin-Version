@@ -147,12 +147,12 @@ class SeeProfileState extends State<SeeMyProfile> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("My Profile"),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.green,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -179,7 +179,7 @@ class SeeProfileState extends State<SeeMyProfile> {
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: Colors.black,
               ),
             ),
 
@@ -187,7 +187,7 @@ class SeeProfileState extends State<SeeMyProfile> {
 
             Text(
               "User Profile",
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+              style: TextStyle(color: Colors.black, fontSize: 14),
             ),
 
             const SizedBox(height: 30),
@@ -249,7 +249,7 @@ class SeeProfileState extends State<SeeMyProfile> {
               icon: const Icon(Icons.edit),
               label: const Text("Edit Profile"),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepOrange,
+                backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 30,
