@@ -509,7 +509,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1C),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
@@ -518,7 +518,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
           Text(
             title,
             style: const TextStyle(
-              color: Colors.deepOrange,
+              color: Colors.black,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -535,12 +535,12 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Icon(icon, color: Colors.deepOrange, size: 20),
+          Icon(icon, color: Colors.black, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               value ?? "Not available",
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: Colors.black),
             ),
           ),
         ],
@@ -555,7 +555,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
           ? [
               const Text(
                 "No data available",
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: Colors.red),
               ),
             ]
           : items.map((e) => _row(Icons.check_circle, e)).toList(),

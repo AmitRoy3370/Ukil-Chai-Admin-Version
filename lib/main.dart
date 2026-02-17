@@ -149,21 +149,35 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  static late List<Widget> bottomPages = [];
+  initState() {
+    super.initState();
+    initNotificationSocket();
+    loadAllUser();
+  }
+
+  static late List<Widget> bottomPages = [
+    Homepage(),
+    PostFeedPage(),
+    AdvocateFilterPage(),
+    AllUserChatListScreen(currentUserId: "", currentUserName: ""),
+    LogIn(),
+  ];
 
   Future<void> loadAllUser() async {
     //myId = await getMyId();
     //myName = await getMyName();
 
-    bottomPages = [
-      Homepage(),
-      PostFeedPage(),
-      AdvocateFilterPage(),
-      AllUserChatListScreen(currentUserId: myId, currentUserName: myName),
-      LogIn(),
-    ];
+    setState(() {
+      bottomPages = [
+        Homepage(),
+        PostFeedPage(),
+        AdvocateFilterPage(),
+        AllUserChatListScreen(currentUserId: myId, currentUserName: myName),
+        LogIn(),
+      ];
 
-    isLoading = false;
+      isLoading = false;
+    });
   }
 
   @override
@@ -238,7 +252,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
       ),
-      body: bottomPages[index],
+      body: index == 3 ? AllUserChatListScreen(currentUserId: myId, currentUserName: myName) : bottomPages[index],
       bottomNavigationBar: BottomNavigationBar(
         items: const [
           BottomNavigationBarItem(

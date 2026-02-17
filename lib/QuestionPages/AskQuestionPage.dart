@@ -94,7 +94,7 @@ class _AskQuestionPageState extends State<AskQuestionPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(speciality.icon, color: Colors.black, size: 30),
+                          Icon(speciality.icon, color: Colors.white, size: 30),
                           const SizedBox(height: 10),
                           Text(
                             speciality.label,

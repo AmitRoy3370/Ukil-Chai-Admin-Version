@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:advocatechaiadmin/Utils/BaseURL.dart' as baseURL;
 import 'package:advocatechaiadmin/Auth/AuthService.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:advocatechaiadmin/Utils/AdvocateSpeciality.dart';
 
 class UpdateProfile extends StatefulWidget {
   const UpdateProfile({super.key});
@@ -52,10 +53,16 @@ class _UpdateProfileState extends State<UpdateProfile> {
 
   get userIdValue => null;
 
+  late List<AdvocateSpeciality> selectedDistricts = [];
+
+  final List<String> bangladeshDistricts = AdvocateSpeciality.values
+      .map((e) => e.name)
+      .toList();
+
   Future<File?> convertBytesToFile(
-      Uint8List bytes, {
-        required String extension,
-      }) async {
+    Uint8List bytes, {
+    required String extension,
+  }) async {
     if (kIsWeb) {
       print('Conversion to File not supported on web. Use bytes directly.');
       return null;
@@ -98,6 +105,22 @@ class _UpdateProfileState extends State<UpdateProfile> {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
+      final adminResponse = await http.get(
+        Uri.parse("${baseURL.Urls().baseURL}admin/by-user/$userId"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (adminResponse.statusCode == 200) {
+        setState(() {
+          final adminData = jsonDecode(adminResponse.body);
+
+          selectedDistricts = adminData["advocateSpeciality"];
+        });
+      }
+
       setState(() {
         oldNameController.text = data["name"];
 
@@ -120,14 +143,14 @@ class _UpdateProfileState extends State<UpdateProfile> {
           final bytes = profileImageResponse.bodyBytes;
           bool isJpeg =
               bytes.length > 4 &&
-                  bytes[0] == 0xFF &&
-                  bytes[1] == 0xD8; // JPEG check
+              bytes[0] == 0xFF &&
+              bytes[1] == 0xD8; // JPEG check
           bool isPng =
               bytes.length > 4 &&
-                  bytes[0] == 0x89 &&
-                  bytes[1] == 0x50 &&
-                  bytes[2] == 0x4E &&
-                  bytes[3] == 0x47; // PNG check
+              bytes[0] == 0x89 &&
+              bytes[1] == 0x50 &&
+              bytes[2] == 0x4E &&
+              bytes[3] == 0x47; // PNG check
           bool isLikelyImage = isJpeg || isPng;
           if (isLikelyImage) {
             print("Valid image bytes detected");
@@ -275,6 +298,49 @@ class _UpdateProfileState extends State<UpdateProfile> {
         print("Failed to load previous data: ${response.statusCode}");
       }
     }
+  }
+
+  void showDistrictDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, dialogSetState) {
+            return AlertDialog(
+              title: const Text("Select Specialist"),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView(
+                  children: bangladeshDistricts.map((district) {
+                    return CheckboxListTile(
+                      title: Text(district),
+                      value: selectedDistricts.contains(district),
+                      onChanged: (value) {
+                        dialogSetState(() {
+                          if (value == true) {
+                            selectedDistricts.add(
+                              AdvocateSpecialityExt.fromApi(district),
+                            );
+                          } else {
+                            selectedDistricts.remove(district);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Done"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -438,7 +504,7 @@ class _UpdateProfileState extends State<UpdateProfile> {
           _selectedPosition = pos;
           _selectedPlaceName = name;
           locationTextController.text = /*"Place: $name, Lat: $lat, Lng: $lng"*/
-          _selectedPlaceName!;
+              _selectedPlaceName!;
           _updateMarkers();
           // });
           mapController.move(pos, 15.0);
@@ -467,6 +533,12 @@ class _UpdateProfileState extends State<UpdateProfile> {
       }
       setState(() {});
     }
+  }
+
+  void removeSpeciality(AdvocateSpeciality speciality) {
+    setState(() {
+      selectedDistricts.remove(speciality);
+    });
   }
 
   Future<void> _submitForm() async {
@@ -684,7 +756,7 @@ class _UpdateProfileState extends State<UpdateProfile> {
           headers: {
             "Authorization": "Bearer $_token", // Key: Use 'Bearer ' prefix
             "Content-Type":
-            "application/json", // If JSON body; adjust as needed
+                "application/json", // If JSON body; adjust as needed
           },
         );
 
@@ -737,7 +809,7 @@ class _UpdateProfileState extends State<UpdateProfile> {
             headers: {
               "Authorization": "Bearer $_token", // Key: Use 'Bearer ' prefix
               "Content-Type":
-              "application/json", // If JSON body; adjust as needed
+                  "application/json", // If JSON body; adjust as needed
             },
             body: jsonEncode({
               "userId": userId,
@@ -782,7 +854,7 @@ class _UpdateProfileState extends State<UpdateProfile> {
           headers: {
             "Authorization": "Bearer $_token", // Key: Use 'Bearer ' prefix
             "Content-Type":
-            "application/json", // If JSON body; adjust as needed
+                "application/json", // If JSON body; adjust as needed
           },
         );
 
@@ -807,7 +879,7 @@ class _UpdateProfileState extends State<UpdateProfile> {
             headers: {
               "Authorization": "Bearer $token1", // Key: Use 'Bearer ' prefix
               "Content-Type":
-              "application/json", // If JSON body; adjust as needed
+                  "application/json", // If JSON body; adjust as needed
             },
             body: jsonEncode({
               "userId": userId,
@@ -876,7 +948,7 @@ class _UpdateProfileState extends State<UpdateProfile> {
             headers: {
               "Authorization": "Bearer $token1", // Key: Use 'Bearer ' prefix
               "Content-Type":
-              "application/json", // If JSON body; adjust as needed
+                  "application/json", // If JSON body; adjust as needed
             },
             body: jsonEncode({
               "userId": userId,
@@ -910,9 +982,47 @@ class _UpdateProfileState extends State<UpdateProfile> {
           }
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Registration Successful")),
+        final existingAdminResponse = await http.get(
+          Uri.parse("${baseURL.Urls().baseURL}admin/by-user/$userId"),
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer $token",
+          },
         );
+
+        if (existingAdminResponse.statusCode == 200) {
+          var existingAdminResponseBody = jsonDecode(
+            existingAdminResponse.body,
+          );
+
+          existingAdminResponseBody["advocateSpeciality"] = selectedDistricts
+              .map((district) => district.apiValue)
+              .toList();
+
+          final adminUpdateResponse = await http.put(
+            Uri.parse(
+              "${baseURL.Urls().baseURL}admin/update/${existingAdminResponseBody["id"]}/$userId",
+            ),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+            body: jsonEncode(existingAdminResponseBody),
+          );
+
+          if (adminUpdateResponse.statusCode == 200 ||
+              adminUpdateResponse.statusCode == 201) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Your profile updated successfully..."),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(adminUpdateResponse.body)));
+          }
+        }
 
         if (kDebugMode) {
           // print("JWT TOKEN => $token");
@@ -942,212 +1052,233 @@ class _UpdateProfileState extends State<UpdateProfile> {
         title: const Text("Registration with Map"),
         backgroundColor: Colors.blue,
       ),
-      body: Stack(
-        children: [
-          FlutterMap(
-            mapController: mapController,
-            options: const MapOptions(
-              initialCenter: lat_lng.LatLng(23.8103, 90.4125),
-              initialZoom: 13.0,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate:
-                'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                subdomains: const ['a', 'b', 'c'],
+      body: SingleChildScrollView(
+        child: Stack(
+          children: [
+            FlutterMap(
+              mapController: mapController,
+              options: const MapOptions(
+                initialCenter: lat_lng.LatLng(23.8103, 90.4125),
+                initialZoom: 13.0,
               ),
-              MarkerLayer(markers: _markers),
-            ],
-          ),
-          Positioned(
-            top: 10,
-            left: 10,
-            right: 10,
-            child: Card(
-              elevation: 5,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: searchController,
-                        decoration: const InputDecoration(
-                          hintText: "Search place...",
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.search),
-                      onPressed: searchPlace,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: showForm ? 310 : 20,
-            left: 10,
-            child: Row(
               children: [
-                const Text("Open Registration Form"),
-                Switch(
-                  value: showForm,
-                  onChanged: (val) {
-                    setState(() {
-                      showForm = val;
-                    });
-                  },
+                TileLayer(
+                  urlTemplate:
+                      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  subdomains: const ['a', 'b', 'c'],
                 ),
+                MarkerLayer(markers: _markers),
               ],
             ),
-          ),
-          if (showForm)
             Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
+              top: 10,
+              left: 10,
+              right: 10,
               child: Card(
-                margin: const EdgeInsets.all(10),
-                elevation: 6,
+                elevation: 5,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Stack(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(15),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const SizedBox(
-                              height: 20,
-                            ), // Space for close button
-                            TextField(
-                              readOnly: true,
-                              controller: oldNameController,
-                              decoration: const InputDecoration(
-                                labelText: "Old Name",
-                              ),
-                            ),
-                            TextField(
-                              controller: nameController,
-                              decoration: const InputDecoration(
-                                labelText: "New Name",
-                              ),
-                            ),
-                            TextField(
-                              controller: oldPasswordController,
-                              obscureText: !_showOldPassword,
-                              decoration: InputDecoration(
-                                labelText: "Old Password",
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _showOldPassword
-                                        ? Icons.visibility
-                                        : Icons.visibility_off,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _showOldPassword = !_showOldPassword;
-                                    });
-                                  },
-                                ),
-                              ),
-                            ),
-                            TextField(
-                              controller: passwordController,
-                              obscureText: !_showPassword,
-                              decoration: InputDecoration(
-                                labelText: "New Password",
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _showPassword
-                                        ? Icons.visibility
-                                        : Icons.visibility_off,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _showPassword = !_showPassword;
-                                    });
-                                  },
-                                ),
-                              ),
-                            ),
-
-                            TextField(
-                              controller: emailController,
-                              decoration: const InputDecoration(
-                                labelText: "Email",
-                              ),
-                            ),
-                            TextField(
-                              controller: phoneController,
-                              decoration: const InputDecoration(
-                                labelText: "Phone",
-                              ),
-                            ),
-                            TextField(
-                              controller: locationTextController,
-                              readOnly: true,
-                              decoration: const InputDecoration(
-                                labelText: "Location Info",
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            GestureDetector(
-                              onTap: pickImage,
-                              child: Container(
-                                height: 120,
-                                width: 120,
-                                decoration: BoxDecoration(border: Border.all()),
-                                child:
-                                pickedImage == null && webImageBytes == null
-                                    ? const Icon(Icons.camera_alt, size: 50)
-                                    : kIsWeb
-                                    ? Image.memory(
-                                  webImageBytes!,
-                                  fit: BoxFit.cover,
-                                )
-                                    : Image.file(
-                                  pickedImage!,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            ElevatedButton(
-                              onPressed: _submitForm,
-                              child: const Text("Submit Registration"),
-                            ),
-                          ],
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: searchController,
+                          decoration: const InputDecoration(
+                            hintText: "Search place...",
+                            border: InputBorder.none,
+                          ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () {
-                          setState(() {
-                            showForm = false;
-                          });
-                        },
+                      IconButton(
+                        icon: const Icon(Icons.search),
+                        onPressed: searchPlace,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-        ],
+            Positioned(
+              bottom: showForm ? 310 : 20,
+              left: 10,
+              child: Row(
+                children: [
+                  const Text("Open Registration Form"),
+                  Switch(
+                    value: showForm,
+                    onChanged: (val) {
+                      setState(() {
+                        showForm = val;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+            if (showForm)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Card(
+                  margin: const EdgeInsets.all(10),
+                  elevation: 6,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Stack(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(15),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(
+                                height: 20,
+                              ), // Space for close button
+                              TextField(
+                                readOnly: true,
+                                controller: oldNameController,
+                                decoration: const InputDecoration(
+                                  labelText: "Old Name",
+                                ),
+                              ),
+                              TextField(
+                                controller: nameController,
+                                decoration: const InputDecoration(
+                                  labelText: "New Name",
+                                ),
+                              ),
+                              TextField(
+                                controller: oldPasswordController,
+                                obscureText: !_showOldPassword,
+                                decoration: InputDecoration(
+                                  labelText: "Old Password",
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _showOldPassword
+                                          ? Icons.visibility
+                                          : Icons.visibility_off,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _showOldPassword = !_showOldPassword;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ),
+                              TextField(
+                                controller: passwordController,
+                                obscureText: !_showPassword,
+                                decoration: InputDecoration(
+                                  labelText: "New Password",
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _showPassword
+                                          ? Icons.visibility
+                                          : Icons.visibility_off,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _showPassword = !_showPassword;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ),
+
+                              TextField(
+                                controller: emailController,
+                                decoration: const InputDecoration(
+                                  labelText: "Email",
+                                ),
+                              ),
+                              TextField(
+                                controller: phoneController,
+                                decoration: const InputDecoration(
+                                  labelText: "Phone",
+                                ),
+                              ),
+                              TextField(
+                                controller: locationTextController,
+                                readOnly: true,
+                                decoration: const InputDecoration(
+                                  labelText: "Location Info",
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              GestureDetector(
+                                onTap: pickImage,
+                                child: Container(
+                                  height: 120,
+                                  width: 120,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(),
+                                  ),
+                                  child:
+                                      pickedImage == null &&
+                                          webImageBytes == null
+                                      ? const Icon(Icons.camera_alt, size: 50)
+                                      : kIsWeb
+                                      ? Image.memory(
+                                          webImageBytes!,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Image.file(
+                                          pickedImage!,
+                                          fit: BoxFit.cover,
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              ElevatedButton(
+                                onPressed: showDistrictDialog,
+                                child: const Text("Select Specialist"),
+                              ),
+
+                              Wrap(
+                                children: selectedDistricts.map((speciality) {
+                                  return Chip(
+                                    label: Text(speciality.name),
+                                    deleteIcon: const Icon(Icons.close),
+                                    onDeleted: () =>
+                                        removeSpeciality(speciality),
+                                  );
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 20),
+                              ElevatedButton(
+                                onPressed: _submitForm,
+                                child: const Text("Submit Registration"),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            setState(() {
+                              showForm = false;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

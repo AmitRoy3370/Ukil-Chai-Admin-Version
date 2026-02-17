@@ -97,7 +97,7 @@ class CaseHomePage extends StatelessWidget {
             ),
 
             const SizedBox(height: 16),
-            /*_caseButton(
+            _caseButton(
               context,
               title: "See All Cases",
               icon: Icons.list_alt,
@@ -121,7 +121,7 @@ class CaseHomePage extends StatelessWidget {
                   ),
                 );*/
               },
-            ),*/
+            ),
 
           ],
         ),

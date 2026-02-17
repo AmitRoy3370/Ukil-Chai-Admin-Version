@@ -70,6 +70,9 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> {
 
     if (response.statusCode == 200) {
       final body = jsonDecode(response.body);
+
+      print("finding name :- ${body["name"]}");
+
       return body["name"] ?? "";
     }
     return "";
@@ -200,10 +203,88 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> {
     );
 
     if (response.statusCode == 200) {
-      final List body = jsonDecode(response.body);
+      final List responseData = jsonDecode(response.body);
 
+      List<AdvocateDetailsModel> models = [];
+
+      for (final item in responseData) {
+        final advocateDecoded = item as Map<String, dynamic>;
+        final String userId = advocateDecoded["userId"];
+
+        // ---------- USER ----------
+        final userRes = await http.get(
+          Uri.parse("${BASE_URL.Urls().baseURL}user/search?userId=$userId"),
+          headers: {"Authorization": "Bearer $token"},
+        );
+
+        print("user response for ${getNameFromUser(userId)} is ${userRes.statusCode}");
+
+        if (userRes.statusCode != 200) continue;
+        final user = jsonDecode(userRes.body);
+
+        // ---------- CONTACT ----------
+        String? email;
+        String? phone;
+
+        final contactRes = await http.get(
+          Uri.parse(
+            "${BASE_URL.Urls().baseURL}user/contact-info/user?userId=$userId",
+          ),
+          headers: {"Authorization": "Bearer $token"},
+        );
+
+        print("Contact response for ${getNameFromUser(userId)} is ${contactRes.statusCode}");
+
+
+        if (contactRes.statusCode == 200) {
+          final contact = jsonDecode(contactRes.body);
+          email = contact["email"];
+          phone = contact["phone"];
+        }
+
+        // ---------- LOCATION ----------
+        String? locationName;
+        double? lat;
+        double? lng;
+
+        final locationRes = await http.get(
+          Uri.parse(
+            "${BASE_URL.Urls().baseURL}userLocation/findByUserId/$userId",
+          ),
+          headers: {"Authorization": "Bearer $token"},
+        );
+
+        print("location response for ${getNameFromUser(userId)} is ${locationRes.statusCode}");
+
+
+        if (locationRes.statusCode == 200) {
+          final location = jsonDecode(locationRes.body);
+          locationName = location["locationName"];
+          lat = location["lattitude"];
+          lng = location["longitude"];
+        }
+
+        // ---------- BUILD MODEL ----------
+        final model = AdvocateDetailsModel.defaultConstructor()
+          ..id = advocateDecoded["id"]
+          ..userId = userId
+          ..name = user["name"]
+          ..profileImageId = user["profileImageId"]
+          ..experience = advocateDecoded["experience"]
+          ..licenseKey = advocateDecoded["licenseKey"]
+          ..advocateSpeciality = advocateDecoded["advocateSpeciality"] ?? []
+          ..degrees = advocateDecoded["degrees"] ?? []
+          ..workingExperiences = advocateDecoded["workingExperiences"] ?? []
+          ..email = email
+          ..phone = phone
+          ..locationName = locationName
+          ..lattitude = lat
+          ..longitude = lng;
+
+        models.add(model);
+      }
       setState(() {
-        list = body.map((e) => AdvocateDetailsModel.fromJson(e)).toList();
+        list = /*body.map((e) => AdvocateDetailsModel.fromJson(e)).toList()*/ models;
         loading = false;
       });
     } else {
