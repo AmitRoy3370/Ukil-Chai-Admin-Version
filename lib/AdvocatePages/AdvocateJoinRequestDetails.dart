@@ -23,17 +23,23 @@ import '../PostRelatedPages/AdvocatePost.dart';
 import '../PostRelatedPages/PostService.dart';
 import '../PostRelatedPages/post_card.dart';
 import '../Utils/BaseURL.dart' as BASE_URL;
+import 'advocate_join_request.dart';
 
-class AdvocateDetails extends StatefulWidget {
-  final AdvocateDetailsModel advocateDetailsModel;
+class AdvocateJoinRequestDetails extends StatefulWidget {
+  final AdvocateJoinRequestModel advocateDetailsModel;
 
-  const AdvocateDetails({super.key, required this.advocateDetailsModel});
+  const AdvocateJoinRequestDetails({
+    super.key,
+    required this.advocateDetailsModel,
+  });
 
   @override
-  State<AdvocateDetails> createState() => AdvocateDetailsState();
+  State<AdvocateJoinRequestDetails> createState() =>
+      AdvocateJoinRequestDetailsState();
 }
 
-class AdvocateDetailsState extends State<AdvocateDetails> {
+class AdvocateJoinRequestDetailsState
+    extends State<AdvocateJoinRequestDetails> {
   int totalCases = 0;
   bool loading = true;
   List<AdvocatePost> posts = [];
@@ -47,9 +53,9 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
   @override
   void initState() {
     super.initState();
-    fetchTotalCases();
-    loadPosts();
-    fetchRatings();
+    //fetchTotalCases();
+    //loadPosts();
+    //fetchRatings();
   }
 
   Future<void> fetchRatings() async {
@@ -310,9 +316,6 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
                     "${widget.advocateDetailsModel.experience ?? 0} years experience",
                     style: TextStyle(color: Colors.black),
                   ),
-                  const SizedBox(height: 6),
-
-                  Text("$totalCases cases is fighting by ${widget.advocateDetailsModel.name} now",style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold))
                 ],
               ),
             ),
@@ -355,7 +358,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
               (widget.advocateDetailsModel.workingExperiences).cast<String>(),
             ),
 
-            const SizedBox(height: 20),
+            /*const SizedBox(height: 20),
 
             if (posts.isNotEmpty)
               SizedBox(
@@ -374,13 +377,10 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
                     );
                   },
                 ),
-              ),
-
+              ),*/
             const SizedBox(height: 20),
 
-            const SizedBox(height: 10),
-
-            Container(
+            /*Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.orange.shade50,
@@ -414,7 +414,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
                   ),
                 ],
               ),
-            ),
+            ),*/
 
             /// ================= CV BUTTON =================
             ElevatedButton.icon(
@@ -432,7 +432,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
             const SizedBox(height: 20),
 
             /// ================= CASE REQUEST BUTTON =================
-            ElevatedButton(
+            /*ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -463,7 +463,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
+            ),*/
             const SizedBox(height: 20),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -500,6 +500,8 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
                 ),
               ),
             ),
+            const SizedBox(height: 20),
+            buildResponseSection(),
           ],
         ),
       ),
@@ -577,6 +579,43 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
           return const Icon(Icons.star_border, color: Colors.amber, size: 22);
         }
       }),
+    );
+  }
+
+  Widget buildResponseSection() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ElevatedButton(
+          onPressed: () async {
+            SharedPreferences prefs = await SharedPreferences.getInstance();
+            final token = prefs.getString('jwt_token') ?? '';
+            final userId = prefs.getString('userId') ?? '';
+
+            final response = await http.put(
+              Uri.parse(
+                "${BASE_URL.Urls().baseURL}advocateJoinRequest/handleJoinRequest?advocateJoinRequestId=${widget.advocateDetailsModel.id}&userId=$userId",
+              ),
+              headers: {"Authorization": "Bearer $token"},
+            );
+
+            if (response.statusCode == 200) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text("Request Accepted")));
+            } else {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text("Request Rejected")));
+            }
+          },
+
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+
+          child: Text("Accept", style: TextStyle(color: Colors.white)),
+        ),
+        const SizedBox(width: 12),
+      ],
     );
   }
 }

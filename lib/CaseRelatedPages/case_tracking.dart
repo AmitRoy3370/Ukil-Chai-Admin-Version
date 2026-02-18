@@ -319,7 +319,8 @@ class _CaseTrackingState extends State<CaseTracking> {
                       if (caseJudgment != null)
                         _caseJudgmentTile(caseJudgment!),
                       const SizedBox(height: 16),
-                      _advocateRatingCard(),
+                      if(widget.userId != null)
+                        _advocateRatingCard(),
                     ],
                   ),
                 ),
