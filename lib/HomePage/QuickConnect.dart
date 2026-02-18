@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import '../AdvocatePages/AdvocateFilterPage.dart';
+import '../AdvocatePages/AdvocateHomePage.dart';
 import '../Auth/AuthService.dart';
 import '../CaseRelatedPages/CaseHomePage.dart';
 import '../ChatRelatedPages/CenterAdminChatListScreen.dart';
@@ -57,7 +57,7 @@ class QuickConnect extends StatelessWidget {
                 print("Find Expert");
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => AdvocateFilterPage()),
+                  MaterialPageRoute(builder: (_) => AdvocateHomePage()),
                 );
               }
 

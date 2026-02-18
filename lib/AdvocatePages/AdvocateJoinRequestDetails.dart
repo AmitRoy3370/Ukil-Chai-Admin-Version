@@ -603,6 +603,9 @@ class AdvocateJoinRequestDetailsState
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(const SnackBar(content: Text("Request Accepted")));
+
+              Navigator.pop(context);
+
             } else {
               ScaffoldMessenger.of(
                 context,
