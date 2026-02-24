@@ -25,7 +25,7 @@ class CaseService {
     required List<String> existingFiles,
     required List<PlatformFile> newFiles,
   }) async {
-    final uri = Uri.parse("${BASE_URL.Urls().baseURL}/case/update");
+    final uri = Uri.parse("${BASE_URL.Urls().baseURL}case/update");
 
     final request = http.MultipartRequest("POST", uri)
       ..headers.addAll(_headers)
@@ -54,7 +54,7 @@ class CaseService {
   // ================= FIND BY ID =================
   Future<CaseModel> findById(String id) async {
     final res = await http.get(
-      Uri.parse("${BASE_URL.Urls().baseURL}/case/$id"),
+      Uri.parse("${BASE_URL.Urls().baseURL}case/$id"),
       headers: _headers,
     );
 
@@ -65,7 +65,7 @@ class CaseService {
   // ================= FIND ALL =================
   Future<List<CaseModel>> findAll() async {
     final res = await http.get(
-      Uri.parse("${BASE_URL.Urls().baseURL}/case/all"),
+      Uri.parse("${BASE_URL.Urls().baseURL}case/all"),
       headers: _headers,
     );
 
@@ -78,7 +78,7 @@ class CaseService {
   // ================= BY USER =================
   Future<List<CaseModel>> byUser(String userId) async {
     final res = await http.get(
-      Uri.parse("${BASE_URL.Urls().baseURL}/case/user/$userId"),
+      Uri.parse("${BASE_URL.Urls().baseURL}case/user/$userId"),
       headers: _headers,
     );
 
@@ -91,7 +91,7 @@ class CaseService {
   // ================= SEARCH =================
   Future<List<CaseModel>> search(String name) async {
     final res = await http.get(
-      Uri.parse("${BASE_URL.Urls().baseURL}/case/search/$name"),
+      Uri.parse("${BASE_URL.Urls().baseURL}case/search/$name"),
       headers: _headers,
     );
 
@@ -104,7 +104,7 @@ class CaseService {
   // ================= DELETE =================
   Future<bool> deleteCase(String caseId, String userId) async {
     final res = await http.delete(
-      Uri.parse("${BASE_URL.Urls().baseURL}/case/$caseId/$userId"),
+      Uri.parse("${BASE_URL.Urls().baseURL}case/$caseId/$userId"),
       headers: _headers,
     );
 
@@ -113,10 +113,10 @@ class CaseService {
 
   // ================= ATTACHMENT URLS =================
   String viewAttachmentUrl(String attachmentId) {
-    return "${BASE_URL.Urls().baseURL}/case/attachment/view/$attachmentId";
+    return "${BASE_URL.Urls().baseURL}case/attachment/view/$attachmentId";
   }
 
   String downloadAttachmentUrl(String attachmentId) {
-    return "${BASE_URL.Urls().baseURL}/case/attachment/$attachmentId";
+    return "${BASE_URL.Urls().baseURL}case/attachment/$attachmentId";
   }
 }

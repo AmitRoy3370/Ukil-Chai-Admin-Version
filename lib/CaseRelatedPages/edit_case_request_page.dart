@@ -252,6 +252,8 @@ class _EditCaseRequestPageState extends State<EditCaseRequestPage> {
 
                     const SizedBox(height: 20),
 
+
+                    if(requestedAdvocateId != null)
                     FutureBuilder<String>(
                       future: getAdvocateName(requestedAdvocateId),
                       builder: (context, snapshot) {
@@ -267,22 +269,7 @@ class _EditCaseRequestPageState extends State<EditCaseRequestPage> {
                     ),
                     const Divider(),
 
-                    DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: "Select Advocate",
-                      ),
-                      items: advocates.asMap().entries.map((e) {
-                        return DropdownMenuItem(
-                          value: e.value.id,
-                          child: Text(nameOfAdvocates[e.key]),
-                        );
-                      }).toList(),
-                      onChanged: (v) {
-                        setState(() {
-                          requestedAdvocateId = v;
-                        });
-                      },
-                    ),
+
 
                     /// -------- EXISTING FILES --------
                     const Text(
@@ -314,7 +301,14 @@ class _EditCaseRequestPageState extends State<EditCaseRequestPage> {
                         },
                         trailing: IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => deleteExistingAttachment(id),
+                          onPressed: () async {
+                            deleteExistingAttachment(id);
+
+                            setState(() {
+                              existingAttachments.remove(id);
+                            });
+
+                          },
                         ),
                       ),
                     ),
@@ -338,21 +332,7 @@ class _EditCaseRequestPageState extends State<EditCaseRequestPage> {
                         leading: const Icon(Icons.insert_drive_file),
                         title: Text(e.value.name),
 
-                        onTap: () async {
-                          SharedPreferences prefs =
-                              await SharedPreferences.getInstance();
-                          String jwtToken = prefs.getString('jwt_token') ?? '';
 
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CaseRequestAttachmentViewer(
-                                attachmentId: e.value.name,
-                                jwtToken: jwtToken,
-                              ),
-                            ),
-                          );
-                        },
 
                         trailing: IconButton(
                           icon: const Icon(Icons.close, color: Colors.red),

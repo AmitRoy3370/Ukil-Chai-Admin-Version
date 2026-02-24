@@ -122,7 +122,14 @@ class CaseDetailsPage extends StatelessWidget {
     final url = "$baseUrl/${caseModel.id}/${caseModel.userId}";
 
     try {
-      final response = await http.delete(Uri.parse(url));
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt_token') ?? '';
+
+      final response = await http.delete(Uri.parse(url), headers:{
+        "content-type": "application/json",
+        "Authorization": "Bearer $token",
+      });
       final body = jsonDecode(response.body);
 
       if (response.statusCode == 200 && body["success"] == true) {
