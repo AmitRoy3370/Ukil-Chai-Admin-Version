@@ -701,7 +701,37 @@ class _RegistrationPageState extends State<RegistrationPage> {
                               ),
                               const SizedBox(height: 20),
                               ElevatedButton(
-                                onPressed: _submitForm,
+                                onPressed: () async {
+
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (BuildContext context) {
+                                      return AlertDialog(
+                                        title: Text("Registering..."),
+                                        content: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            CircularProgressIndicator(),
+                                            SizedBox(height: 16),
+                                            Text(
+                                              "Please wait while we register you...",
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  );
+
+                                  await _submitForm();
+
+                                  if(context.mounted) {
+
+                                    Navigator.pop(context);
+
+                                  }
+
+                                },
                                 child: const Text("Submit Registration"),
                               ),
                             ],
