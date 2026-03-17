@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class QuickCard extends StatelessWidget {
@@ -17,7 +16,6 @@ class QuickCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth > 600;
 
@@ -26,13 +24,14 @@ class QuickCard extends StatelessWidget {
     final double subtitleSize = isDesktop ? 15 : 13;
     final double padding = isDesktop ? 24 : 16;
 
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      splashColor: Colors.green.withOpacity(0.2),
-      highlightColor: Colors.green.withOpacity(0.1),
-      child: AnimatedContainer(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        splashColor: Colors.green.withOpacity(0.2),
+        highlightColor: Colors.green.withOpacity(0.1),
+        child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           padding: EdgeInsets.all(padding),
           decoration: BoxDecoration(
@@ -47,32 +46,44 @@ class QuickCard extends StatelessWidget {
               ),
             ],
           ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 35, color: Colors.black),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 40,
-                fontWeight: FontWeight.bold,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  size: iconSize,
+                  color: Colors.green.shade700,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 25,
-                height: 1.2,
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: titleSize,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: subtitleSize,
+                  color: Colors.grey.shade700,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-
     );
   }
 }
