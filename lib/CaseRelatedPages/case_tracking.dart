@@ -622,12 +622,12 @@ class _CaseTrackingState extends State<CaseTracking> {
         subtitle: Text("Date: ${_formatDate(hearing.issuedDate)}"),
         trailing: hearing.attachmentsId.isNotEmpty
             ? Text(
-          "${hearing.attachmentsId.length} files",
-          style: const TextStyle(
-            color: Colors.blue,
-            fontWeight: FontWeight.bold,
-          ),
-        )
+                "${hearing.attachmentsId.length} files",
+                style: const TextStyle(
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
+                ),
+              )
             : null,
         children: [
           // ---------- ATTACHMENTS ----------
@@ -638,21 +638,21 @@ class _CaseTrackingState extends State<CaseTracking> {
                 children: hearing.attachmentsId
                     .map(
                       (attachmentId) => ListTile(
-                    leading: const Icon(Icons.insert_drive_file),
-                    title: Text(attachmentId),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => HearingAttachmentView(
-                            attachmentId: attachmentId,
-                            jwtToken: widget.token!,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                )
+                        leading: const Icon(Icons.insert_drive_file),
+                        title: Text(attachmentId),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => HearingAttachmentView(
+                                attachmentId: attachmentId,
+                                jwtToken: widget.token!,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    )
                     .toList(),
               ),
             ),
@@ -698,7 +698,7 @@ class _CaseTrackingState extends State<CaseTracking> {
                         if (widget.userId != null)
                           ElevatedButton(
                             onPressed: () {
-                              Navigator.push(
+                              final result = Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
@@ -710,6 +710,10 @@ class _CaseTrackingState extends State<CaseTracking> {
                                       ),
                                 ),
                               );
+
+                              if (result == true) {
+                                setState(() => _loadFuture = _loadAllData());
+                              }
                             },
                             child: Text(
                               "Schedule Appeal Hearing",
@@ -757,12 +761,12 @@ class _CaseTrackingState extends State<CaseTracking> {
           trailing: draft.attachmentsId.isEmpty
               ? null
               : Text(
-            "${draft.attachmentsId.length} files",
-            style: const TextStyle(
-              color: Colors.blue,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+                  "${draft.attachmentsId.length} files",
+                  style: const TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
           onTap: () {
             if (draft.attachmentsId.isNotEmpty) {
               _showDraftAttachmentSheet(draft);
@@ -794,7 +798,7 @@ class _CaseTrackingState extends State<CaseTracking> {
                 const SizedBox(height: 12),
 
                 ...draft.attachmentsId.map(
-                      (attachmentId) => Card(
+                  (attachmentId) => Card(
                     child: ListTile(
                       leading: const Icon(Icons.insert_drive_file),
                       title: Text(attachmentId),
@@ -883,12 +887,12 @@ class _CaseTrackingState extends State<CaseTracking> {
         subtitle: caseJudgment.judgmentAttachmentId == null
             ? null
             : Text(
-          caseJudgment.judgmentAttachmentId!,
-          style: const TextStyle(
-            color: Colors.blue,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+                caseJudgment.judgmentAttachmentId!,
+                style: const TextStyle(
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
         onTap: () {
           print(
             "case judgment attachment id :- ${caseJudgment.judgmentAttachmentId}",
