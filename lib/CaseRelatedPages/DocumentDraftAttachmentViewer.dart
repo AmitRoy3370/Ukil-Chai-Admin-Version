@@ -319,7 +319,7 @@ class _DocumentDraftAttachmentViewState
 
     // VIDEO
     if (contentType != null && contentType!.startsWith('video/')) {
-      return Column(
+      return SingleChildScrollView( child: Column(
         children: [
           AspectRatio(
             aspectRatio: videoController!.value.aspectRatio,
@@ -339,6 +339,7 @@ class _DocumentDraftAttachmentViewState
             },
           ),
         ],
+      ),
       );
     }
 
@@ -358,7 +359,7 @@ class _DocumentDraftAttachmentViewState
 
     // WORD / OTHER
     return Center(
-      child: Column(
+      child: SingleChildScrollView( child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(Icons.insert_drive_file, size: 80),
@@ -374,6 +375,7 @@ class _DocumentDraftAttachmentViewState
             onPressed: _openOrDownload,
           ),
         ],
+      ),
       ),
     );
   }
