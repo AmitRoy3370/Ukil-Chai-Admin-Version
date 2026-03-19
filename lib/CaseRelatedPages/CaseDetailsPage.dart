@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'MyCasesPage.dart';
 import 'SeeAllCases.dart';
 import 'case_judgment_service.dart';
 import 'CaseJudgmentModel.dart';
@@ -208,11 +209,15 @@ class CaseDetailsPage extends StatelessWidget {
                   if (success) {
                     onDeleted?.call();
                     if (context.mounted) {
+                      SharedPreferences prefs =
+                          await SharedPreferences.getInstance();
+                      final token = prefs.getString('jwt_token') ?? '';
+                      final userId = prefs.getString('userId') ?? '';
 
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => SeeAllCasesPage(),
+                          builder: (_) => MyCasesPage(userId: userId),
                         ),
                       );
 
@@ -331,7 +336,7 @@ class CaseDetailsPage extends StatelessWidget {
                   ),
 
                 ...caseModel.attachmentsId.map(
-                      (id) => ListTile(
+                  (id) => ListTile(
                     leading: const Icon(Icons.insert_drive_file),
                     title: Text(id, overflow: TextOverflow.ellipsis),
                     trailing: Row(
@@ -340,7 +345,7 @@ class CaseDetailsPage extends StatelessWidget {
                         IconButton(
                           icon: const Icon(Icons.visibility),
                           onPressed: () => SharedPreferences.getInstance().then(
-                                (prefs) {
+                            (prefs) {
                               final token = prefs.getString('jwt_token') ?? '';
                               final userId = prefs.getString('userId') ?? '';
 
@@ -454,7 +459,7 @@ class CaseDetailsPage extends StatelessWidget {
                       );
 
                       SharedPreferences prefs =
-                      await SharedPreferences.getInstance();
+                          await SharedPreferences.getInstance();
                       final token = prefs.getString('jwt_token') ?? '';
                       final userId = prefs.getString('userId') ?? '';
 
@@ -565,7 +570,7 @@ class CaseDetailsPage extends StatelessWidget {
                                 ),
                                 onPressed: () async {
                                   SharedPreferences prefs =
-                                  await SharedPreferences.getInstance();
+                                      await SharedPreferences.getInstance();
                                   final token =
                                       prefs.getString('jwt_token') ?? '';
                                   final userId =

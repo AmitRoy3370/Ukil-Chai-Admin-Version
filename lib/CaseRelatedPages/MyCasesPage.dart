@@ -187,8 +187,15 @@ class _MyCasesPageState extends State<MyCasesPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) =>
-                          CaseDetailsPage(caseModel: c, userId: userId),
+                      builder: (_) => CaseDetailsPage(
+                        caseModel: c,
+                        userId: userId,
+                        onDeleted: () {
+                          setState(() {
+                            futureCases = fetchMyCases();
+                          });
+                        },
+                      ),
                     ),
                   );
                 },
@@ -263,21 +270,23 @@ class _MyCasesPageState extends State<MyCasesPage> {
                               ),
                               IconButton(
                                 icon: const Icon(Icons.download),
-                                onPressed: () => SharedPreferences.getInstance().then((prefs) {
-                                  final token = prefs.getString('jwt_token') ?? '';
-                                  final userId = prefs.getString('userId') ?? '';
+                                onPressed: () => SharedPreferences.getInstance()
+                                    .then((prefs) {
+                                      final token =
+                                          prefs.getString('jwt_token') ?? '';
+                                      final userId =
+                                          prefs.getString('userId') ?? '';
 
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => CaseAttachmentView(
-                                          attachmentId: id,
-                                          jwtToken: token,
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => CaseAttachmentView(
+                                            attachmentId: id,
+                                            jwtToken: token,
+                                          ),
                                         ),
-                                      )
-                                  );
-
-                                }),
+                                      );
+                                    }),
                               ),
 
                               Expanded(
