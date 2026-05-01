@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:advocatechaiadmin/PostRelatedPages/post_response.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as NavigatorPageRoute;
@@ -36,7 +37,7 @@ class AdvocateDetails extends StatefulWidget {
 class AdvocateDetailsState extends State<AdvocateDetails> {
   int totalCases = 0;
   bool loading = true;
-  List<AdvocatePost> posts = [];
+  List<PostResponse> posts = [];
 
   double averageRating = 0.0;
   int totalRatings = 0;
@@ -368,7 +369,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
                       width: 300,
                       child: Card(
                         child: SingleChildScrollView(
-                          child: PostCard(post: posts[index]),
+                          child: PostCard(post: posts[index], canReact: false,),
                         ),
                       ),
                     );

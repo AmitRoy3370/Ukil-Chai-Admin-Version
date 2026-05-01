@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../Auth/AuthService.dart';
 import '../Utils/BaseURL.dart' as baseURL;
 import 'QuestionCard.dart';
+import '../QuestionPages/question_response.dart';
 import 'QuestionModel.dart';
 import 'QuestionService.dart';
 import 'package:http/http.dart' as http;
@@ -50,7 +51,7 @@ class _QuestionListPageState extends State<QuestionListPage> {
           ),
         ),
       ),
-      body: FutureBuilder<List<QuestionModel>>(
+      body: FutureBuilder<List<QuestionResponse>>(
         future: searchText.isEmpty
             ? QuestionService.getAllQuestions()
             : QuestionService.search(searchText),
@@ -59,7 +60,7 @@ class _QuestionListPageState extends State<QuestionListPage> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final questions = snapshot.data!;
+          final questions = snapshot.data!.reversed.toList();
 
           return ListView.builder(
             padding: const EdgeInsets.all(12),

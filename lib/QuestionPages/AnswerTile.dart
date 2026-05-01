@@ -13,8 +13,10 @@ import '../Utils/BaseURL.dart' as baseURL;
 import 'AnswerModel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'answer_response.dart';
+
 class AnswerTile extends StatelessWidget {
-  final AnswerModel answer;
+  final AnswerResponse answer;
   const AnswerTile({required this.answer, super.key});
 
   // ---------------- GET USER NAME ----------------
@@ -96,8 +98,9 @@ class AnswerTile extends StatelessWidget {
       );
 
       if (response.statusCode != 200) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text("Download failed")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Download failed")));
         return;
       }
 
@@ -112,7 +115,8 @@ class AnswerTile extends StatelessWidget {
       }
 
       // 🔹 Get content type
-      final contentType = response.headers['content-type'] ?? "application/octet-stream";
+      final contentType =
+          response.headers['content-type'] ?? "application/octet-stream";
 
       // 🔹 Add extension if missing
       if (!fileName.contains(".")) {
@@ -144,13 +148,12 @@ class AnswerTile extends StatelessWidget {
       await file.writeAsBytes(response.bodyBytes);
 
       await OpenFilex.open(filePath);
-
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Attachment error: $e")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Attachment error: $e")));
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -164,25 +167,22 @@ class AnswerTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-          FutureBuilder<String>(
-            future: getNameFromAdvocate(answer.advocateId),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Text("Advocate: loading...");
-              }
-              if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Text("Advocate: N/A");
-              } else {
-                return Text("Advocate: ${snapshot.data}", style : TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold));
-              }
-            }
+          Text(
+            "Advocate: ${answer.advocateName}",
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
           ),
+
+          const SizedBox(height: 6),
 
           Text(
             answer.message,
             style: const TextStyle(color: Colors.black, fontSize: 13),
           ),
+          const SizedBox(height: 6),
           if (answer.attachmentId != null)
             InkWell(
               onTap: () => openAttachment(context, answer.attachmentId!),

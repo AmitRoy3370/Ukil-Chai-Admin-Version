@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../QuestionPages/answer_response.dart';
 import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
@@ -12,6 +13,7 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:html' as html;
 import '../Auth/AuthService.dart';
 import '../Utils/AdvocateSpeciality.dart';
+import '../QuestionPages/question_response.dart';
 import '../Utils/BaseURL.dart' as baseURL;
 import '../Utils/BaseURL.dart' as BASE_URL;
 import 'AnswerModel.dart';
@@ -21,7 +23,7 @@ import 'QuestionModel.dart';
 import 'QuestionService.dart';
 
 class QuestionCard extends StatefulWidget {
-  final QuestionModel question;
+  final QuestionResponse question;
   final VoidCallback refreshMethod;
 
   const QuestionCard({
@@ -60,7 +62,6 @@ class _QuestionCardState extends State<QuestionCard> {
     });
 
     print("file name :- $fileName");
-
   }
 
   @override
@@ -218,7 +219,7 @@ class _QuestionCardState extends State<QuestionCard> {
       text: widget.question.message,
     );
 
-    String selectedType = widget.question.questionType;
+    String selectedType = widget.question.questionType.apiValue;
 
     showDialog(
       context: context,
@@ -288,7 +289,7 @@ class _QuestionCardState extends State<QuestionCard> {
 
                 try {
                   SharedPreferences prefs =
-                  await SharedPreferences.getInstance();
+                      await SharedPreferences.getInstance();
                   final token = prefs.getString('jwt_token') ?? '';
 
                   final uri = Uri.parse(
@@ -309,7 +310,7 @@ class _QuestionCardState extends State<QuestionCard> {
                   request.fields["questionId"] = widget.question.id!;
                   if (widget.question.attachmentId != null) {
                     request.fields["attachmentId"] =
-                    widget.question.attachmentId!;
+                        widget.question.attachmentId!;
                   } else {
                     request.fields["attachmentId"] = "";
                   }
@@ -419,7 +420,7 @@ class _QuestionCardState extends State<QuestionCard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  widget.question.questionType,
+                  widget.question.questionType.apiValue,
                   style: const TextStyle(color: Colors.green),
                 ),
                 if (isMyQuestion)
@@ -494,19 +495,7 @@ class _QuestionCardState extends State<QuestionCard> {
             ),
 
             const SizedBox(height: 6),
-            FutureBuilder<String>(
-              future: getNameFromUser(widget.question.userId),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Text("Loading...");
-                }
-
-                return Text(
-                  "Asked by ${snapshot.data}",
-                  style: const TextStyle(color: Colors.black),
-                );
-              },
-            ),
+            Text("Asked by ${widget.question.userName}"),
             const SizedBox(height: 6),
             Text(
               widget.question.message,
@@ -532,29 +521,18 @@ class _QuestionCardState extends State<QuestionCard> {
             const Divider(color: Colors.grey),
 
             /// ================= ANSWERS =================
-            FutureBuilder<List<AnswerModel>>(
-              future: AnswerService.getByQuestion(widget.question.id!),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Text(
-                    "Loading answers...",
-                    style: TextStyle(color: Colors.grey),
-                  );
-                }
+            const Divider(color: Colors.grey),
 
-                final answers = snapshot.data!;
-                if (answers.isEmpty) {
-                  return const Text(
-                    "No answers yet",
-                    style: TextStyle(color: Colors.grey),
-                  );
-                }
+            /// ================= ANSWERS =================
+            if (widget.question.answers.isEmpty) Text('No Answer yet'),
+            if (widget.question.answers.isNotEmpty) Text('Answers'),
 
-                return Column(
-                  children: answers.map((a) => AnswerTile(answer: a)).toList(),
-                );
-              },
-            ),
+            if (widget.question.answers.isNotEmpty)
+              Column(
+                children: widget.question.answers
+                    .map((a) => AnswerTile(answer: a))
+                    .toList(),
+              ),
           ],
         ),
       ),

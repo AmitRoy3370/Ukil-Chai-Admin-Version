@@ -313,11 +313,11 @@ class CaseDetailsPage extends StatelessWidget {
                 _info("Case Name", caseModel.caseName),
                 _info("Case Type", caseModel.caseType),
 
-                _futureInfo("User", getNameFromUser(caseModel.userId)),
+                _info("User", caseModel.userName),
 
-                _futureInfo(
+                _info(
                   "Advocate",
-                  getNameFromAdvocate(caseModel.advocateId),
+                  caseModel.advocateName,
                 ),
 
                 _info("Issued Time", caseModel.issuedTime),
@@ -463,9 +463,7 @@ class CaseDetailsPage extends StatelessWidget {
                       final token = prefs.getString('jwt_token') ?? '';
                       final userId = prefs.getString('userId') ?? '';
 
-                      final advocateName = await getNameFromAdvocate(
-                        caseModel.advocateId,
-                      );
+                      final advocateName = caseModel.advocateName;
 
                       final nameResponse = await http.get(
                         Uri.parse(

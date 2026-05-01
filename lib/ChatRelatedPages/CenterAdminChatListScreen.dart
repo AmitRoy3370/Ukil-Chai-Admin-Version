@@ -179,32 +179,6 @@ class _CenterAdminChatListScreenState extends State<CenterAdminChatListScreen> {
 
     bool val = false;
 
-    final unReadChatResponse = await http.get(
-      Uri.parse('${BASE_URL.Urls().baseURL}readable-chat/status?isRead=$val'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    print("un read messages :- ${unReadChatResponse.body}");
-
-    Map<String, bool> unReadChats = {};
-
-    if (unReadChatResponse.statusCode == 200) {
-      List<dynamic> unReadChatsList = jsonDecode(unReadChatResponse.body);
-
-      print("un read messages :- $unReadChatsList");
-
-      for (var chat in unReadChatsList) {
-        String chatId = chat['chatId'];
-        bool isRead = chat['isRead'];
-
-        unReadChats[chatId] = isRead;
-      }
-    }
-
     try {
       for (var admin in chatResponses) {
 
@@ -247,7 +221,7 @@ class _CenterAdminChatListScreenState extends State<CenterAdminChatListScreen> {
           bool? isOnline =
               activeness.isNotEmpty && activeness.containsKey(otherUserId);
           bool? isUnread =
-              unReadChats.isNotEmpty && unReadChats.containsKey(admin.id);
+          senderInfo != null ? senderInfo.readChat : receiverInfo?.readChat;
 
           print("userId :- $otherUserId , userName :- $otherUserName , isOnline :- $isOnline , isUnread :- $isUnread , timeStamp :- $timeStamp , lateMessage :- $lateMessage , userAvatar :- $userAvatar");
 
@@ -258,7 +232,7 @@ class _CenterAdminChatListScreenState extends State<CenterAdminChatListScreen> {
               userAvatar: userAvatar,
               lastMessage: lateMessage,
               lastMessageTime: timeStamp,
-              unreadCount: isUnread ? 1 : 0,
+              unreadCount: (isUnread != null && !isUnread) ? 1 : 0,
               isOnline: isOnline ? true : false,
             );
 
