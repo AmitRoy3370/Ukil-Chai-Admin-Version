@@ -1,17 +1,15 @@
+// LogIn.dart - Without using Provider to avoid the error
 import 'dart:convert';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Auth/AuthService.dart';
 import '../ChatRelatedPages/user_active_service.dart';
 import '../RegistrationPage/RegistrationPage.dart';
 import 'package:advocatechaiadmin/Utils/BaseURL.dart' as baseURL;
-import 'dart:io';
-import 'dart:typed_data';
-
 import '../Utils/BaseURL.dart' as BASE_URL;
+import '../main.dart';
 
 class LogIn extends StatefulWidget {
   const LogIn({super.key});
@@ -25,23 +23,19 @@ class LogIn extends StatefulWidget {
 class LogInState extends State<LogIn> {
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
-
   bool isVisible = false;
-
-  bool _isPasswordVisible = false; // 👈 Password visibility controller
+  bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
   Future<bool> doesItVisible() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String token = prefs.getString("jwt_token") ?? "";
-
-    //print("token :- $token");
 
     if (token.isEmpty) {
       return false;
     }
 
     String allAthleteURL = "${baseURL.Urls().baseURL}advocate/all";
-
     Uri uri = Uri.parse(allAthleteURL);
 
     var response = await http.get(
@@ -52,88 +46,15 @@ class LogInState extends State<LogIn> {
       },
     );
 
-    //print("response status code :- ${response.statusCode}");
-
     if (response.statusCode == 403) {
       return false;
     }
-
-    isVisible = true;
 
     setState(() {
       isVisible = true;
     });
 
     return true;
-  }
-
-  Future<void> _submitForm() async {
-    String email = emailController.text;
-    String password = passwordController.text;
-
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter email and password")),
-      );
-    } else {
-      String loginURL = "${baseURL.Urls().baseURL}auth/login";
-
-      Uri uri = Uri.parse(loginURL);
-
-      var logInResponse = await http.post(
-        uri,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"userName": email, "password": password}),
-      );
-
-      if (logInResponse.statusCode == 200 || logInResponse.statusCode == 201) {
-        final decoded = jsonDecode(logInResponse.body);
-
-        final userId = decoded["userId"];
-        final String token = decoded["token"];
-
-        //print("received token :- $token");
-
-        // -------- Save token (App + Web) ----------
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString("jwt_token", token);
-        await prefs.setString("userId", userId);
-
-        final adminResponse = await http.get(
-          Uri.parse("${BASE_URL.Urls().baseURL}admin/by-user/$userId"),
-          headers: {
-            'content-type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-        );
-
-        if (adminResponse.statusCode == 200) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Logged in successfully...")),
-          );
-
-          setState(() {
-            isVisible = true;
-            AuthService.saveToken(token);
-            AuthService.saveUserId(userId);
-            setUserActive(true);
-          });
-        } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("You can log in only as an admin at here....")));
-        }
-      } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(logInResponse.body)));
-      }
-    }
-  }
-
-  initState() {
-    super.initState();
-    doesItVisible();
   }
 
   void setUserActive(bool active) async {
@@ -152,7 +73,6 @@ class LogInState extends State<LogIn> {
 
         if (response.statusCode == 200) {
           final body = jsonDecode(response.body);
-
           await UserActiveService.updateUserActive(
             body["id"],
             userId,
@@ -168,151 +88,221 @@ class LogInState extends State<LogIn> {
     }
   }
 
+  Future<void> _submitForm() async {
+    String email = emailController.text;
+    String password = passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter email and password")),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    String loginURL = "${baseURL.Urls().baseURL}auth/login";
+    Uri uri = Uri.parse(loginURL);
+
+    var logInResponse = await http.post(
+      uri,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"userName": email, "password": password}),
+    );
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (logInResponse.statusCode == 200 || logInResponse.statusCode == 201) {
+      final decoded = jsonDecode(logInResponse.body);
+      final userId = decoded["userId"];
+      final String token = decoded["token"];
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString("jwt_token", token);
+      await prefs.setString("userId", userId);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Logged in successfully...")),
+      );
+
+      setState(() {
+        isVisible = true;
+      });
+      
+      AuthService.saveToken(token);
+      AuthService.saveUserId(userId);
+      setUserActive(true);
+      
+      // Just return true - no Provider usage
+      if (mounted) {
+        /*if (homePageKey.currentState != null) {
+          await homePageKey.currentState!.refreshUserData();
+        }*/
+        Navigator.pop(context, true);
+       
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(logInResponse.body)),
+      );
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    doesItVisible();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SizedBox(height: 40),
-
-          TextField(
-            decoration: InputDecoration(
-              hintText: 'Enter your user name',
-              prefixIcon: Icon(Icons.person),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(25.0)),
-              ),
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: EdgeInsets.all(10),
-              hintStyle: TextStyle(color: Colors.grey, fontSize: 15),
-            ),
-            controller: emailController,
-            maxLines: 1,
-          ),
-
-          const SizedBox(height: 20),
-
-          // ============================
-          // 🔥 Password TextField (with Show/Hide)
-          // ============================
-          TextField(
-            controller: passwordController,
-            obscureText: !_isPasswordVisible, // 👈 toggles text visibility
-            maxLines: 1,
-            decoration: InputDecoration(
-              hintText: 'Enter your password',
-              prefixIcon: Icon(Icons.lock),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(25.0)),
-              ),
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: EdgeInsets.all(10),
-
-              // 👇 Suffix icon to toggle visibility
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 40),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.green.shade50,
                 ),
-                onPressed: () {
-                  setState(() {
-                    _isPasswordVisible = !_isPasswordVisible;
-                  });
-                },
+                child: Icon(
+                  Icons.gavel,
+                  size: 60,
+                  color: Colors.green.shade700,
+                ),
               ),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          ElevatedButton(
-            onPressed: () async {
-
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: Text("Logging In..."),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text("Please wait while we log you in..."),
-                        SizedBox(height: 8),
-                        Text("This may take a few seconds..."),
-                      ],
+              const SizedBox(height: 20),
+              Text(
+                "Welcome Back!",
+                style: GoogleFonts.poppins(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green.shade800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Login to your account",
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 40),
+              TextField(
+                controller: emailController,
+                style: GoogleFonts.inter(fontSize: 16),
+                decoration: InputDecoration(
+                  hintText: 'Enter your username',
+                  hintStyle: GoogleFonts.inter(color: Colors.grey.shade400),
+                  prefixIcon: Icon(Icons.person_outline, color: Colors.green.shade600),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordController,
+                obscureText: !_isPasswordVisible,
+                style: GoogleFonts.inter(fontSize: 16),
+                decoration: InputDecoration(
+                  hintText: 'Enter your password',
+                  hintStyle: GoogleFonts.inter(color: Colors.grey.shade400),
+                  prefixIcon: Icon(Icons.lock_outline, color: Colors.green.shade600),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.grey.shade600,
                     ),
-                  );
-                },
-              );
-
-              await _submitForm();
-
-              if(context.mounted) {
-
-                Navigator.pop(context);
-
-              }
-
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                    onPressed: () {
+                      setState(() {
+                        _isPasswordVisible = !_isPasswordVisible;
+                      });
+                    },
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                ),
               ),
-            ),
-            child: Text(
-              "Log In",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _submitForm,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade600,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          "Login",
+                          style: GoogleFonts.inter(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
               ),
-            ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Don't have an account? ",
+                    style: GoogleFonts.inter(color: Colors.grey.shade600),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const RegistrationPage()),
+                      );
+                    },
+                    child: Text(
+                      "Register",
+                      style: GoogleFonts.inter(
+                        color: Colors.green.shade600,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-
-          const SizedBox(height: 20),
-
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => RegistrationPage()),
-              );
-            },
-            child: Text(
-              "Don't have account? Please register",
-              style: TextStyle(
-                color: Colors.blue,
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          Visibility(
-            visible: (isVisible),
-
-            child: Text(
-              "You are logged in...",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-                color: Colors.black,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

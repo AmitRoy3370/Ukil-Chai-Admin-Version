@@ -1,6 +1,6 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,29 +12,73 @@ import 'SeeAllCases.dart';
 import 'case_judgment_service.dart';
 import 'CaseJudgmentModel.dart';
 import './AppealCasePage.dart';
-
 import './case_model.dart';
-import 'package:advocatechaiadmin/Utils/BaseURL.dart' as BASE_URL;
-import 'package:advocatechaiadmin/Auth/AuthService.dart';
-
+import '../Utils/BaseURL.dart' as BASE_URL;
+import '../Auth/AuthService.dart';
 import 'AttachmentViewer.dart';
 import 'case_tracking.dart';
+import '../PageTransition.dart';
 
-class CaseDetailsPage extends StatelessWidget {
+class CaseDetailsPage extends StatefulWidget {
   final CaseModel caseModel;
   final String? userId;
-  final VoidCallback? onDeleted; // ← NEW
+  final VoidCallback? onDeleted;
 
-  CaseDetailsPage({
+  const CaseDetailsPage({
     super.key,
     required this.caseModel,
     this.userId,
     this.onDeleted,
   });
 
+  @override
+  State<CaseDetailsPage> createState() => _CaseDetailsPageState();
+}
+
+class _CaseDetailsPageState extends State<CaseDetailsPage> with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  
   final String baseUrl = "${BASE_URL.Urls().baseURL}case";
 
-  // ---------------- OPEN ATTACHMENT ----------------
+  // List of available transition types for random selection
+  final List<PageTransitionType> _transitionTypes = AnimatedRoute.getCompanySafeAnimations();
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  PageTransitionType _getRandomTransition() {
+    final random = DateTime.now().millisecondsSinceEpoch % _transitionTypes.length;
+    return _transitionTypes[random];
+  }
+
+  void _navigateWithRandomTransition(BuildContext context, Widget page) {
+    NavigationHelper.push(
+      context,
+      page,
+      transitionType: _getRandomTransition(),
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   Future<void> openAttachment(String attachmentId, {bool view = false}) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final jwtToken = prefs.getString('jwt_token') ?? '';
@@ -49,14 +93,9 @@ class CaseDetailsPage extends StatelessWidget {
 
     if (response.statusCode == 200) {
       final bytes = response.bodyBytes;
-
-      // get temp directory
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/$attachmentId');
-
       await file.writeAsBytes(bytes);
-
-      // open the file
       await OpenFile.open(file.path);
     } else {
       throw Exception('Failed to download attachment: ${response.statusCode}');
@@ -64,71 +103,17 @@ class CaseDetailsPage extends StatelessWidget {
   }
 
   Future<CaseJudgment?> loadJudgment() {
-    return CaseJudgmentService.getByCase(caseModel.id);
+    return CaseJudgmentService.getByCase(widget.caseModel.id);
   }
 
   Future<bool> isMyCase() async {
     final prefs = await SharedPreferences.getInstance();
     final myUserId = prefs.getString('userId');
-    return myUserId != null && myUserId == caseModel.userId;
+    return myUserId != null && myUserId == widget.caseModel.userId;
   }
 
-  // ---------------- GET USER NAME ----------------
-  Future<String> getNameFromUser(String userId) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('jwt_token') ?? '';
-
-    final url = "${BASE_URL.Urls().baseURL}user/search?userId=$userId";
-
-    final response = await http.get(
-      Uri.parse(url),
-      headers: {
-        "content-type": "application/json",
-        "Authorization": "Bearer $token",
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final body = jsonDecode(response.body);
-      return body["name"] ?? "";
-    }
-    return "";
-  }
-
-  // ---------------- GET ADVOCATE NAME ----------------
-  Future<String> getNameFromAdvocate(String advocateId) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('jwt_token') ?? '';
-
-    final url = "${BASE_URL.Urls().baseURL}advocate/$advocateId";
-
-    print("token from name of advocate :- $token");
-
-    final response = await http.get(
-      Uri.parse(url),
-      headers: {
-        "content-type": "application/json",
-        "Authorization": "Bearer $token",
-      },
-    );
-
-    if (response.statusCode == 200) {
-      print("find advocate $advocateId from name from advocate....");
-
-      final body = jsonDecode(response.body);
-      final userId = body["userId"];
-
-      print("userId :- $userId");
-
-      return getNameFromUser(userId);
-    }
-    return "";
-  }
-
-  // ---------------- DELETE CASE ----------------
   Future<bool> deleteCase(BuildContext context) async {
-    final url = "$baseUrl/${caseModel.id}/${caseModel.userId}";
-
+    final url = "$baseUrl/${widget.caseModel.id}/${widget.caseModel.userId}";
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token') ?? '';
 
@@ -147,15 +132,15 @@ class CaseDetailsPage extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Case deleted successfully")),
         );
-        return true; // ✅ important
+        return true;
       } else {
         throw body["error"] ?? "Delete failed";
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
-      return false; // ✅ important
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+      return false;
     }
   }
 
@@ -163,35 +148,48 @@ class CaseDetailsPage extends StatelessWidget {
     return await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text("Delete Case"),
-        content: const Text(
+        backgroundColor: Colors.grey.shade900,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          "Delete Case",
+          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
           "Are you sure you want to delete this case?\nThis action cannot be undone.",
+          style: GoogleFonts.inter(color: Colors.grey.shade300),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text("Cancel"),
+            child: Text("Cancel", style: GoogleFonts.inter(color: Colors.grey.shade400)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
             onPressed: () async {
-              Navigator.pop(dialogContext, true); // close confirm dialog
-
-              // show loading
+              Navigator.pop(dialogContext, true);
               if (context.mounted) {
                 showDialog(
                   context: context,
                   barrierDismissible: false,
-                  builder: (_) => const AlertDialog(
-                    title: Text("Deleting Case"),
+                  builder: (_) => AlertDialog(
+                    backgroundColor: Colors.grey.shade900,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    title: Text(
+                      "Deleting Case",
+                      style: GoogleFonts.poppins(color: Colors.white),
+                    ),
                     content: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
                         Text(
                           "Deleting case...\nPlease wait",
                           textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(color: Colors.grey.shade300),
                         ),
                       ],
                     ),
@@ -199,36 +197,15 @@ class CaseDetailsPage extends StatelessWidget {
                 );
 
                 final success = await deleteCase(context);
+                if (context.mounted) Navigator.pop(context);
 
-                // Close loading dialog
-                if (context.mounted) {
-                  Navigator.pop(context); // close loading
-
-                  print("result is case details page :- $success");
-
-                  if (success) {
-                    onDeleted?.call();
-                    if (context.mounted) {
-                      SharedPreferences prefs =
-                          await SharedPreferences.getInstance();
-                      final token = prefs.getString('jwt_token') ?? '';
-                      final userId = prefs.getString('userId') ?? '';
-
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => MyCasesPage(userId: userId),
-                        ),
-                      );
-
-                      // 🔥 THIS IS THE KEY CHANGE - return true to the previous page
-                      //Navigator.pop(context, true);
-                    }
-                  } else {
-                    if (context.mounted) {
-                      // Return false if deletion failed
-                      Navigator.pop(context, false);
-                    }
+                if (success) {
+                  widget.onDeleted?.call();
+                  if (context.mounted) {
+                    _navigateWithRandomTransition(
+                      context,
+                      MyCasesPage(userId: widget.caseModel.userId),
+                    );
                   }
                 }
               }
@@ -240,365 +217,524 @@ class CaseDetailsPage extends StatelessWidget {
     );
   }
 
-  // ---------------- FUTURE INFO ROW ----------------
-  Widget _futureInfo(String title, Future<String> future) {
+  Widget _infoRow(String title, String value, {IconData? icon}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 110,
-            child: Text(
-              "$title:",
-              style: const TextStyle(fontWeight: FontWeight.bold),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.deepPurple.shade50,
+              borderRadius: BorderRadius.circular(10),
             ),
+            child: Icon(icon ?? Icons.info, size: 20, color: Colors.deepPurple.shade600),
           ),
+          const SizedBox(width: 12),
           Expanded(
-            child: FutureBuilder<String>(
-              future: future,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Text("Loading...");
-                }
-                if (snapshot.hasError ||
-                    !snapshot.hasData ||
-                    snapshot.data!.isEmpty) {
-                  return const Text("N/A");
-                }
-                return Text(snapshot.data!);
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ---------------- NORMAL INFO ROW ----------------
-  Widget _info(String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 110,
-            child: Text(
-              "$title:",
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
-  }
-
-  // ---------------- UI ----------------
-  @override
-  Widget build(BuildContext context) {
-    final pageContext = context; // 👈 IMPORTANT
-    return Scaffold(
-      appBar: AppBar(title: const Text("Case Details")),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Card(
-          elevation: 3,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _info("Case Name", caseModel.caseName),
-                _info("Case Type", caseModel.caseType),
-
-                _info("User", caseModel.userName),
-
-                _info(
-                  "Advocate",
-                  caseModel.advocateName,
-                ),
-
-                _info("Issued Time", caseModel.issuedTime),
-
-                const SizedBox(height: 16),
-
-                const Text(
-                  "Attachments",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-
-                if (caseModel.attachmentsId.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8),
-                    child: Text("No attachments available"),
+                Text(
+                  title,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: Colors.grey.shade500,
+                    letterSpacing: 0.5,
                   ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                ...caseModel.attachmentsId.map(
-                  (id) => ListTile(
-                    leading: const Icon(Icons.insert_drive_file),
-                    title: Text(id, overflow: TextOverflow.ellipsis),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.visibility),
-                          onPressed: () => SharedPreferences.getInstance().then(
-                            (prefs) {
-                              final token = prefs.getString('jwt_token') ?? '';
-                              final userId = prefs.getString('userId') ?? '';
+  Widget _buildAttachmentTile(String id) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.deepPurple.shade50,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(Icons.insert_drive_file, color: Colors.deepPurple.shade600, size: 20),
+        ),
+        title: Text(
+          id.length > 30 ? '${id.substring(0, 27)}...' : id,
+          style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade700),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: Icon(Icons.visibility, color: Colors.deepPurple.shade600, size: 20),
+              onPressed: () {
+                SharedPreferences.getInstance().then((prefs) {
+                  final token = prefs.getString('jwt_token') ?? '';
+                  _navigateWithRandomTransition(
+                    context,
+                    CaseAttachmentView(attachmentId: id, jwtToken: token),
+                  );
+                });
+              },
+            ),
+            IconButton(
+              icon: Icon(Icons.download, color: Colors.deepPurple.shade600, size: 20),
+              onPressed: () {
+                SharedPreferences.getInstance().then((prefs) {
+                  final token = prefs.getString('jwt_token') ?? '';
+                  _navigateWithRandomTransition(
+                    context,
+                    CaseAttachmentView(attachmentId: id, jwtToken: token),
+                  );
+                });
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => CaseAttachmentView(
-                                    attachmentId: id,
-                                    jwtToken: token,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.download),
-                          onPressed: () {
-                            SharedPreferences.getInstance().then((prefs) {
-                              final token = prefs.getString('jwt_token') ?? '';
-                              final userId = prefs.getString('userId') ?? '';
-
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => CaseAttachmentView(
-                                    attachmentId: id,
-                                    jwtToken: token,
-                                  ),
-                                ),
-                              );
-                            });
-                          },
-                        ),
-                      ],
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey.shade100,
+      appBar: AppBar(
+        title: Text(
+          "Case Details",
+          style: GoogleFonts.poppins(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: const Color(0xFF1A237E), // Deep Navy
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF1A237E), // Deep Navy
+                Color(0xFF283593), // Indigo
+                Color(0xFF3949AB), // Lighter Indigo
+              ],
+            ),
+          ),
+        ),
+      ),
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              // Case Header Card
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF1A237E), // Deep Navy
+                      Color(0xFF283593), // Indigo
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF1A237E).withOpacity(0.3),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
                     ),
-                  ),
+                  ],
                 ),
-
-                const SizedBox(height: 24),
-
-                FutureBuilder<bool>(
-                  future: isMyCase(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const SizedBox(); // no UI jump
-                    }
-
-                    if (snapshot.hasData && snapshot.data == true) {
-                      return SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.delete),
-                          label: const Text("Delete Case"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(Icons.gavel, color: Colors.white, size: 28),
                           ),
-                          onPressed: () async {
-                            await confirmDelete(context);
-
-                            //Navigator.pop(context, result);
-                          },
-                        ),
-                      );
-                    }
-
-                    return const SizedBox(); // hide button if not owner
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.track_changes),
-                    label: const Text("Case Tracking"),
-
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: const BorderSide(color: Colors.green, width: 1),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.caseModel.caseName,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    "Case ID: ${widget.caseModel.id.substring(0, 8)}...",
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Case Information Card
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                    onPressed: () async {
-                      // Show loader immediately
-                      showDialog(
-                        context: context,
-                        barrierDismissible: false, // user can't close it
-                        builder: (ctx) => const Center(
-                          child: Card(
-                            child: Padding(
-                              padding: EdgeInsets.all(24),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  CircularProgressIndicator(),
-                                  SizedBox(height: 16),
-                                  Text(
-                                    "Loading Case Tracking...\nPlease wait",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(fontSize: 16),
-                                  ),
-                                ],
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Case Information",
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepPurple.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _infoRow("Case Type", widget.caseModel.caseType, icon: Icons.category),
+                      _infoRow("Client", widget.caseModel.userName, icon: Icons.person),
+                      _infoRow("Advocate", widget.caseModel.advocateName ?? "Not Assigned", icon: Icons.gavel),
+                      _infoRow("Issued Date", widget.caseModel.issuedTime, icon: Icons.calendar_today),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Attachments Card
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.deepPurple.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(Icons.attachment, size: 20, color: Colors.deepPurple.shade600),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            "Attachments",
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.deepPurple.shade700,
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.deepPurple.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              "${widget.caseModel.attachmentsId.length} files",
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.deepPurple.shade600,
                               ),
                             ),
                           ),
-                        ),
-                      );
-
-                      SharedPreferences prefs =
-                          await SharedPreferences.getInstance();
-                      final token = prefs.getString('jwt_token') ?? '';
-                      final userId = prefs.getString('userId') ?? '';
-
-                      final advocateName = caseModel.advocateName;
-
-                      final nameResponse = await http.get(
-                        Uri.parse(
-                          '${BASE_URL.Urls().baseURL}user/search?userId=$userId',
-                        ),
-                        headers: {
-                          "content-type": "application/json",
-                          "Authorization": "Bearer $token",
-                        },
-                      );
-
-                      String? myName;
-
-                      if (nameResponse.statusCode == 200) {
-                        final body = jsonDecode(nameResponse.body);
-                        myName = body["name"] ?? "";
-                      }
-
-                      print(
-                        "userId :- $userId and case userId :- ${caseModel.userId}",
-                      );
-
-                      String? advocateUserId;
-
-                      final response = await http.get(
-                        Uri.parse(
-                          "${BASE_URL.Urls().baseURL}advocate/${caseModel.advocateId}",
-                        ),
-                        headers: {
-                          "content-type": "application/json",
-                          "Authorization": "Bearer $token",
-                        },
-                      );
-
-                      if (response.statusCode == 200) {
-                        final body = jsonDecode(response.body);
-                        advocateUserId = body["userId"];
-                      }
-
-                      Navigator.pop(context, true);
-
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CaseTracking(
-                            caseId: caseModel.id,
-                            caseName: caseModel.caseName,
-                            caseLawyer: advocateName,
-                            issuedTime: caseModel.issuedTime,
-                            token: token,
-                            advocateUserId: advocateUserId,
-                            userName: myName,
-                            userId: caseModel.userId == userId ? userId : null,
-                            advocateId: caseModel.advocateId,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                FutureBuilder<bool>(
-                  future: isMyCase(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const SizedBox(); // no UI jump
-                    }
-
-                    if (snapshot.hasData && snapshot.data == true) {
-                      return SizedBox(
-                        width: double.infinity,
-                        child: FutureBuilder<CaseJudgment?>(
-                          future: loadJudgment(),
-                          builder: (context, snapshot) {
-                            if (!snapshot.hasData || snapshot.data == null) {
-                              return const SizedBox();
-                            }
-
-                            final judgment = snapshot.data!;
-
-                            final today = DateTime.now();
-                            final judgmentDate = judgment.date;
-
-                            final canAppeal = judgmentDate.isBefore(
-                              DateTime(today.year, today.month, today.day),
-                            );
-
-                            if (!canAppeal) return const SizedBox();
-
-                            return SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                icon: const Icon(Icons.gavel),
-                                label: const Text("Case Appeal"),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (widget.caseModel.attachmentsId.isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Column(
+                              children: [
+                                Icon(Icons.attach_file, size: 48, color: Colors.grey.shade400),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "No attachments available",
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    color: Colors.grey.shade500,
                                   ),
                                 ),
-                                onPressed: () async {
-                                  SharedPreferences prefs =
-                                      await SharedPreferences.getInstance();
-                                  final token =
-                                      prefs.getString('jwt_token') ?? '';
-                                  final userId =
-                                      prefs.getString('userId') ?? '';
+                              ],
+                            ),
+                          ),
+                        )
+                      else
+                        ...widget.caseModel.attachmentsId.map((id) => _buildAttachmentTile(id)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
 
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => AppealCasePage(
-                                        token: token,
-                                        caseId: caseModel.id,
-                                        userId: userId,
-                                      ),
+              // Action Buttons
+              FutureBuilder<bool>(
+                future: isMyCase(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox();
+                  }
+
+                  final isOwner = snapshot.hasData && snapshot.data == true;
+
+                  return Column(
+                    children: [
+                      // Case Tracking Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.track_changes),
+                          label: Text(
+                            "Case Tracking",
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepPurple.shade600,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 2,
+                          ),
+                          onPressed: () async {
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (ctx) => AlertDialog(
+                                backgroundColor: Colors.grey.shade900,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const CircularProgressIndicator(),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      "Loading Case Tracking...\nPlease wait",
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.inter(color: Colors.white),
                                     ),
-                                  );
-                                },
+                                  ],
+                                ),
+                              ),
+                            );
+
+                            SharedPreferences prefs = await SharedPreferences.getInstance();
+                            final token = prefs.getString('jwt_token') ?? '';
+                            String? advocateUserId;
+
+                            final response = await http.get(
+                              Uri.parse(
+                                "${BASE_URL.Urls().baseURL}advocate/${widget.caseModel.advocateId}",
+                              ),
+                              headers: {
+                                "content-type": "application/json",
+                                "Authorization": "Bearer $token",
+                              },
+                            );
+
+                            if (response.statusCode == 200) {
+                              final body = jsonDecode(response.body);
+                              advocateUserId = body["userId"];
+                            }
+
+                            if (context.mounted) Navigator.pop(context);
+
+                            _navigateWithRandomTransition(
+                              context,
+                              CaseTracking(
+                                caseId: widget.caseModel.id,
+                                caseName: widget.caseModel.caseName,
+                                caseLawyer: widget.caseModel.advocateName,
+                                issuedTime: widget.caseModel.issuedTime,
+                                token: token,
+                                advocateUserId: advocateUserId,
+                                userName: widget.caseModel.userName,
+                                userId: widget.caseModel.userId == widget.userId ? widget.userId : null,
+                                advocateId: widget.caseModel.advocateId,
                               ),
                             );
                           },
                         ),
-                      );
-                    }
+                      ),
+                      const SizedBox(height: 12),
 
-                    return const SizedBox(); // hide button if not owner
-                  },
-                ),
+                      // Delete Button (only for owner)
+                      if (isOwner)
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.delete),
+                            label: Text(
+                              "Delete Case",
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade600,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 2,
+                            ),
+                            onPressed: () => confirmDelete(context),
+                          ),
+                        ),
+                      const SizedBox(height: 12),
 
-                const SizedBox(height: 16),
-              ],
-            ),
+                      // Appeal Button
+                      FutureBuilder<CaseJudgment?>(
+                        future: loadJudgment(),
+                        builder: (context, snapshot) {
+                          if (!isOwner || !snapshot.hasData || snapshot.data == null) {
+                            return const SizedBox();
+                          }
+
+                          final judgment = snapshot.data!;
+                          final today = DateTime.now();
+                          final judgmentDate = judgment.date;
+                          final canAppeal = judgmentDate.isBefore(
+                            DateTime(today.year, today.month, today.day),
+                          );
+
+                          if (!canAppeal) return const SizedBox();
+
+                          return SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.gavel),
+                              label: Text(
+                                "Case Appeal",
+                                style: GoogleFonts.inter(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange.shade600,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                elevation: 2,
+                              ),
+                              onPressed: () async {
+                                SharedPreferences prefs = await SharedPreferences.getInstance();
+                                final token = prefs.getString('jwt_token') ?? '';
+                                _navigateWithRandomTransition(
+                                  context,
+                                  AppealCasePage(
+                                    token: token,
+                                    caseId: widget.caseModel.id,
+                                    userId: widget.userId ?? '',
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
         ),
       ),

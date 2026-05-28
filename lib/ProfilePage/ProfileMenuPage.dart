@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import '../Auth/AuthService.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../LogInPage/LogIn.dart';
 import 'ProfileImageWidget.dart';
 import 'SeeMyProfile.dart';
@@ -82,18 +83,12 @@ class ProfileMenuPage extends StatelessWidget {
   }
 
   static void deleteAccount(BuildContext context) async {
-    String token = "";
-    String userId = "";
+    
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userId = prefs.getString("userId");
+    String? token = prefs.getString("jwt_token");
 
-    await AuthService.getToken().then((value) {
-      token = value!;
-    });
-
-    await AuthService.getUserId().then((value) {
-      userId = value!;
-    });
-
-    var url = Uri.parse("${BASEURL.Urls().baseURL}user/delete/$userId");
+    var url = Uri.parse("${BASEURL.Urls().baseURL}user/delete/$userId?tryingToDelete=$userId");
 
     var response = await http.delete(
       url,
@@ -102,6 +97,8 @@ class ProfileMenuPage extends StatelessWidget {
         "Content-Type": "application/json",
       },
     );
+
+    AuthService.getToken();
 
     if (response.statusCode == 200) {
       print("Account deleted successfully");
