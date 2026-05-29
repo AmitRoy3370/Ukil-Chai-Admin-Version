@@ -121,6 +121,13 @@ class LogInState extends State<LogIn> {
       final userId = decoded["userId"];
       final String token = decoded["token"];
 
+      final adminResponse = await http.get(
+             Uri.parse('${baseURL.Urls().baseURL}admin/by-user/$userId'),
+             headers: {"Authorization": "Bearer $token"},
+      );
+
+      if(adminResponse.statusCode == 200 || adminResponse.statusCode == 201) {
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString("jwt_token", token);
       await prefs.setString("userId", userId);
@@ -145,6 +152,15 @@ class LogInState extends State<LogIn> {
         Navigator.pop(context, true);
        
       }
+
+      } else {
+
+         ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('You have to be the admin to take access at here...')),
+         );
+
+      }
+
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(logInResponse.body)),
