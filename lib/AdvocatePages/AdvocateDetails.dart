@@ -324,6 +324,10 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
               _row(Icons.email, widget.advocateDetailsModel.email),
               _row(Icons.phone, widget.advocateDetailsModel.phone),
             ]),
+            _section("District", [
+              _row(Icons.location_on, widget.advocateDetailsModel.district),
+              //_row(Icons.phone, widget.advocateDetailsModel.phone),
+            ]),
 
             _section("Location", [
               _row(Icons.location_on, widget.advocateDetailsModel.locationName),

@@ -328,6 +328,12 @@ class AdvocateJoinRequestDetailsState
               _row(Icons.phone, widget.advocateDetailsModel.phone),
             ]),
 
+            _section("District", [
+              _row(Icons.location_on, widget.advocateDetailsModel.district),
+              //_row(Icons.phone, widget.advocateDetailsModel.phone),
+            ]),
+
+
             _section("Location", [
               _row(Icons.location_on, widget.advocateDetailsModel.locationName),
               _row(Icons.map, "Lat: ${widget.advocateDetailsModel.lattitude}"),

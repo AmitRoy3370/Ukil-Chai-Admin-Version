@@ -7,6 +7,7 @@ class AdvocateJoinRequestModel {
   String? locationName;
   String? password;
   String? userId;
+  String? district;
 
   double? lattitude;
   double? longitude;
@@ -34,6 +35,7 @@ class AdvocateJoinRequestModel {
       this.degrees,
       this.workingExperiences,
       this.userId,
+      this.district,
       );
 
   AdvocateJoinRequestModel.defaultConstructor()
@@ -67,6 +69,7 @@ class AdvocateJoinRequestModel {
           ? List.from(json['workingExperiences'])
           : [],
       json['userId'],
+      json['district'] != null ? json['district'] : '',
     );
   }
 }

@@ -8,6 +8,11 @@ import 'package:advocatechaiadmin/AdvocatePages/AdvocateFilterPage.dart';
 import 'package:advocatechaiadmin/AdvocatePages/AdvocateHomePage.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:async';
+import 'LifeCycles/PresenceSocketService.dart';
+import 'package:http/http.dart' as http;
+import '../Auth/AuthService.dart';
+import '../Utils/BaseURL.dart' as BASE_URL;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,6 +22,60 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+
+  Timer? _heartbeatTimer;
+
+
+  @override
+  void initState() {
+    super.initState();
+    heartbit();
+
+  }
+
+  Future<void> heartbit() async {
+
+      final userId = await AuthService.getUserId();
+
+      if(userId != null) {
+
+         _startHeartbeat(userId!);
+
+      }
+
+  }
+
+  void _startHeartbeat(String userId) {
+    _heartbeatTimer = Timer.periodic(
+    const Duration(seconds: 20),
+    (timer) async {
+       try {
+      // ✅ Direct heartbeat by userId
+      final url = Uri.parse("${BASE_URL.Urls().baseURL}user-active/heartbeat/$userId");
+      
+      final token = await AuthService.getToken();
+
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        //_lastHeartbeatTime = DateTime.now();
+        //print("💓 Heartbeat sent at ${_lastHeartbeatTime?.toLocal()}");
+      } else {
+        print("❌ Heartbeat failed: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ Heartbeat error: $e");
+    }
+    },
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {

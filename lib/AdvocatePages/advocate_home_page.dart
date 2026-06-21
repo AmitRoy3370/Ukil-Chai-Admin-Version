@@ -2,14 +2,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../AdvocatePages/AdvocateFilterPage.dart';
-import '../AdvocatePages/advocate_join_request_filter_pages.dart';
 import '../LiveLocations/live_location_screen.dart';
 import '../LiveLocations/live_location_provider.dart';
 import '../Auth/AuthService.dart';
 import '../Utils/BaseURL.dart' as BASE_URL;
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-
 
 class AdvocateHomePage extends StatelessWidget {
   const AdvocateHomePage({super.key});
@@ -36,7 +34,7 @@ class _AdvocateHomePageContentState extends State<_AdvocateHomePageContent> {
   String? userId;
   String? userName;
   bool _isLoading = true;
-  late PageController _pageController = PageController();
+  late PageController _pageController;
 
   @override
   void initState() {
@@ -96,14 +94,11 @@ class _AdvocateHomePageContentState extends State<_AdvocateHomePageContent> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
-      // ✅ hasClients চেক করুন
-      if (_pageController.hasClients) {
-        _pageController.animateToPage(
-          index,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      }
+      _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
     });
   }
 
@@ -163,7 +158,7 @@ class _AdvocateHomePageContentState extends State<_AdvocateHomePageContent> {
               children: [
                 // Tab 0: Advocate Filter
                 const AdvocateFilterPage(),
-                const AdvocateJoinRequestFilterPage(),
+                
                 // Tab 1: Live Location
                 if (userId != null && userId!.isNotEmpty)
                   LiveLocationScreen(
@@ -199,10 +194,6 @@ class _AdvocateHomePageContentState extends State<_AdvocateHomePageContent> {
           BottomNavigationBarItem(
             icon: Icon(Icons.people),
             label: 'Advocates',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Advocates join request',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.location_on),
