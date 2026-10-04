@@ -35,14 +35,25 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'উকিল চাই - Admin'),
+      home: const MyHomePage(title: 'উকিল - Admin'),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  
+  final String? userId, userName, directorId, shareHolderId;
+
+
+  const MyHomePage({
+    super.key,
+    required this.title,
+    this.userId,
+    this.userName,
+    this.shareHolderId,
+    this.directorId,
+  });
 
   final String title;
 

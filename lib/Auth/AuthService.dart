@@ -29,6 +29,29 @@ class AuthService {
     return prefs.getString("userId");
   }
 
+  static Future<void> saveDirectorId(String directorId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("directorId", directorId);
+   // userIdNotifier.value = userId;
+  }
+
+  static Future<String?> getDirectorId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString("directorId");
+  }
+
+  static Future<void> saveShareholderId(String shareHolderId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("shareHolderId", shareHolderId);
+   // userIdNotifier.value = userId;
+  }
+
+  static Future<String?> getShareholderId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString("shareHolderId");
+  }
+
+
   static Future<bool> isLoggedIn() async {
     final token = await getToken();
 

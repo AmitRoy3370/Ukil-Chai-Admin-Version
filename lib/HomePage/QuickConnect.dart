@@ -1,128 +1,205 @@
-// QuickConnect.dart
+// QuickConnect.dart (Admin) — Layout matched to User Panel
+// Click destinations preserved: AdvocateHomePage, CenterAdminChatListScreen,
+// AskQuestionPage, CaseHomePage.
 import 'dart:convert';
-import 'package:advocatechaiadmin/ChatRelatedPages/CenterAdminChatListScreen.dart';
+import '../ChatRelatedPages/CenterAdminChatListScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:advocatechaiadmin/Utils/BaseURL.dart' as BASE_URL;
 import 'QuickCard.dart';
-import '../AdvocatePages/AdvocateFilterPage.dart';
 import '../AdvocatePages/AdvocateHomePage.dart';
 import '../QuestionPages/AskQuestionPage.dart';
 import '../CaseRelatedPages/CaseHomePage.dart';
-import 'package:advocatechaiadmin/PageTransition.dart';
+import '../PageTransition.dart';
 
 class QuickConnect extends StatelessWidget {
   final bool isDesktop;
   final bool isTablet;
 
+  /// When true, the section tries to fill the remaining viewport space
+  /// given by the parent via [remainingViewportHeight].
+  final bool fillHeight;
+
+  /// Explicit height to fill (in logical pixels). Used only when
+  /// [fillHeight] is true.
+  final double? remainingViewportHeight;
+
   const QuickConnect({
     super.key,
     required this.isDesktop,
     required this.isTablet,
+    this.fillHeight = false,
+    this.remainingViewportHeight,
   });
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final crossAxisCount = isDesktop ? 4 : (isTablet ? 3 : 2);
-    final childAspectRatio = isDesktop ? 1.1 : 1.2;
+    final size = MediaQuery.sizeOf(context);
+    final screenW = size.width;
+    final screenH = size.height;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 4,
-              height: 28,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.green.shade400, Colors.green.shade600],
+    // Grid config — same as user panel
+    const int columns = 2;
+    const int rows = 2;
+
+    final double crossSpacing = (screenW * 0.02).clamp(6, 12);
+    final double mainSpacing  = (screenW * 0.015).clamp(5, 10);
+
+    // Header metrics
+    final double headerBarHeight  = (screenW * 0.055).clamp(20, 26);
+    final double titleFontSize    = (screenW * 0.05).clamp(18, 24);
+    final double subtitleFontSize = (screenW * 0.032).clamp(11, 14);
+    final double titleRowHeight   = titleFontSize * 1.3;
+    final double subtitleRowHeight = subtitleFontSize * 1.3;
+    final double gapAfterTitle    = (screenW * 0.01).clamp(4, 8);
+    final double gapBeforeGrid    = (screenW * 0.02).clamp(10, 16);
+
+    final double effectiveHeaderHeight =
+        titleRowHeight > headerBarHeight ? titleRowHeight : headerBarHeight;
+
+    final double headerBlock = effectiveHeaderHeight +
+        gapAfterTitle +
+        subtitleRowHeight +
+        gapBeforeGrid;
+
+    // Card height decision
+    late final double cardHeight;
+    if (fillHeight && remainingViewportHeight != null) {
+      final double gridArea = remainingViewportHeight! - headerBlock;
+      cardHeight = ((gridArea - mainSpacing) / rows).clamp(160.0, 260.0);
+    } else {
+      cardHeight = (screenH * 0.20).clamp(160.0, 200.0);
+    }
+
+    final double? sectionHeight = fillHeight
+        ? headerBlock + (cardHeight * rows) + mainSpacing
+        : null;
+
+    return SizedBox(
+      height: sectionHeight,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: headerBarHeight,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.green.shade400, Colors.green.shade600],
+                  ),
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                borderRadius: BorderRadius.circular(2),
               ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              "Quick Connect",
-              style: GoogleFonts.poppins(
-                fontSize: isDesktop ? 28 : 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.green.shade800,
+              SizedBox(width: (screenW * 0.03).clamp(10, 14)),
+              Text(
+                "Quick Connect",
+                style: GoogleFonts.poppins(
+                  fontSize: titleFontSize,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green.shade800,
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.only(left: 16),
-          child: Text(
-            "Get instant legal assistance",
-            style: GoogleFonts.inter(
-              fontSize: isDesktop ? 16 : 14,
-              color: Colors.grey.shade600,
+            ],
+          ),
+          SizedBox(height: gapAfterTitle),
+          Padding(
+            padding: EdgeInsets.only(left: (screenW * 0.04).clamp(14, 18)),
+            child: Text(
+              "Get instant legal assistance",
+              style: GoogleFonts.inter(
+                fontSize: subtitleFontSize,
+                color: Colors.grey.shade600,
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 24),
+          SizedBox(height: gapBeforeGrid),
 
-        // Animated Grid
-        GridView.count(
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: isDesktop ? 24 : 16,
-          mainAxisSpacing: isDesktop ? 24 : 16,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: childAspectRatio,
-          children: [
-  QuickCard(
-    icon: Icons.person_search,
-    title: "Find Expert",
-    subtitle: "Connect with specialized advocates",
-    gradient: const LinearGradient(
-      colors: [Color(0xFF1A237E), Color(0xFF283593)], // Deep Navy - Trust & Authority
-    ),
-    onTap: () => _navigateWithTransition(context, const AdvocateHomePage()),
-  ),
-  QuickCard(
-    icon: Icons.chat_bubble_outline,
-    title: "Free Consult",
-    subtitle: "15-min free consultation",
-    gradient: const LinearGradient(
-      colors: [Color(0xFF0D47A1), Color(0xFF1565C0)], // Royal Blue - Confidence
-    ),
-    onTap: () async => _handleFreeConsult(context),
-  ),
-  QuickCard(
-    icon: Icons.help_outline_rounded,
-    title: "Ask Question",
-    subtitle: "Public Q&A with advocates",
-    gradient: const LinearGradient(
-      colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)], // Professional Green
-    ),
-    onTap: () async => _handleAskQuestion(context),
-  ),
-  QuickCard(
-    icon: Icons.calendar_month,
-    title: "My Cases",
-    subtitle: "View your case details",
-    gradient: const LinearGradient(
-      colors: [Color(0xFF263238), Color(0xFF37474F)], // Dark Slate
-    ),
-    onTap: () async => _handleMyCases(context),
-  ),
-],
-        ),
-      ],
+          // Grid
+          if (fillHeight)
+            Expanded(
+              child: GridView(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.zero,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  crossAxisSpacing: crossSpacing,
+                  mainAxisSpacing: mainSpacing,
+                  mainAxisExtent: cardHeight,
+                ),
+                children: _buildCards(context),
+              ),
+            )
+          else
+            GridView(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                crossAxisSpacing: crossSpacing,
+                mainAxisSpacing: mainSpacing,
+                mainAxisExtent: cardHeight,
+              ),
+              children: _buildCards(context),
+            ),
+        ],
+      ),
     );
   }
 
-  Future<void> _navigateWithTransition(BuildContext context, Widget page) async {
+  // ── Card list — SAME DESTINATIONS AS ADMIN PANEL ──
+  List<Widget> _buildCards(BuildContext context) => [
+        QuickCard(
+          icon: Icons.person_search,
+          title: "Find Expert",
+          subtitle: "Connect with specialized advocates",
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1A237E), Color(0xFF283593)],
+          ),
+          onTap: () =>
+              _navigateWithTransition(context, const AdvocateHomePage()),
+        ),
+        QuickCard(
+          icon: Icons.chat_bubble_outline,
+          title: "Free Consult",
+          subtitle: "15-min free consultation",
+          gradient: const LinearGradient(
+            colors: [Color(0xFF0D47A1), Color(0xFF1565C0)],
+          ),
+          onTap: () async => _handleFreeConsult(context),
+        ),
+        QuickCard(
+          icon: Icons.help_outline_rounded,
+          title: "Ask Question",
+          subtitle: "Public Q&A with advocates",
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
+          ),
+          onTap: () async => _handleAskQuestion(context),
+        ),
+        QuickCard(
+          icon: Icons.calendar_month,
+          title: "My Cases",
+          subtitle: "View your case details",
+          gradient: const LinearGradient(
+            colors: [Color(0xFF263238), Color(0xFF37474F)],
+          ),
+          onTap: () async => _handleMyCases(context),
+        ),
+      ];
+
+  // ── Handlers — SAME LOGIC AS ADMIN PANEL ──
+  Future<void> _navigateWithTransition(
+      BuildContext context, Widget page) async {
     NavigationHelper.push(
-      context, 
-      page, 
+      context,
+      page,
       transitionType: await AnimatedRoute.getRandomSafeAnimation(),
       duration: const Duration(milliseconds: 500),
     );
