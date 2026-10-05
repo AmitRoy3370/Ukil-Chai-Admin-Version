@@ -1,4 +1,4 @@
-// lib/Post/screens/post_attachment_view.dart
+// lib/Questions/screens/question_attachment_viewer.dart
 
 import 'dart:typed_data';
 import 'dart:convert';
@@ -23,21 +23,22 @@ import 'dart:ui_web' as ui_web;
 import '../Auth/AuthService.dart';
 import '../Utils/BaseURL.dart' as BASE_URL;
 
-class PostAttachmentView extends StatefulWidget {
+class QuestionAttachmentViewer extends StatefulWidget {
   final String attachmentId;
-  final String jwtToken;
+  final String? jwtToken;
 
-  const PostAttachmentView({
+  const QuestionAttachmentViewer({
     super.key,
     required this.attachmentId,
     required this.jwtToken,
   });
 
   @override
-  State<PostAttachmentView> createState() => _PostAttachmentViewState();
+  State<QuestionAttachmentViewer> createState() =>
+      _QuestionAttachmentViewerState();
 }
 
-class _PostAttachmentViewState extends State<PostAttachmentView> {
+class _QuestionAttachmentViewerState extends State<QuestionAttachmentViewer> {
   Uint8List? fileBytes;
   String? contentType;
   String? tempFilePath;
@@ -377,12 +378,13 @@ class _PostAttachmentViewState extends State<PostAttachmentView> {
   // LOAD ATTACHMENT
   // ============================================================
   Future<void> loadAttachment() async {
+    // ✅ Question attachment view URL
     final url = Uri.parse(
-      '${BASE_URL.Urls().baseURL}advocate/posts/attachment/view/${widget.attachmentId}',
+      '${BASE_URL.Urls().baseURL}questions/attachment/view/${widget.attachmentId}',
     );
 
     debugPrint('═══════════════════════════════════════════');
-    debugPrint('📥 POST ATTACHMENT LOAD');
+    debugPrint('📥 QUESTION ATTACHMENT LOAD');
     debugPrint('   ID: ${widget.attachmentId}');
 
     try {
@@ -482,10 +484,10 @@ class _PostAttachmentViewState extends State<PostAttachmentView> {
         }
       }
 
-      // WEB PDF iframe
+      // WEB PDF iframe — ✅ Unique viewType for Question
       if (kIsWeb && contentType != null && contentType!.contains('pdf')) {
         ui_web.platformViewRegistry.registerViewFactory(
-          'post-pdf-${widget.attachmentId}',
+          'question-pdf-${widget.attachmentId}',
           (int viewId) => html.IFrameElement()
             ..src = webUrl
             ..style.border = 'none'
@@ -570,8 +572,9 @@ class _PostAttachmentViewState extends State<PostAttachmentView> {
 
   Future<void> _openOrDownload() async {
     try {
+      // ✅ Question download URL
       final url =
-          "${BASE_URL.Urls().baseURL}advocate/posts/download/postContent?attachmentId=${widget.attachmentId}";
+          "${BASE_URL.Urls().baseURL}questions/downloadQuestionContentent?attachmentId=${widget.attachmentId}";
 
       final token = await AuthService.getToken();
 
@@ -676,7 +679,8 @@ class _PostAttachmentViewState extends State<PostAttachmentView> {
     // PDF
     if (contentType != null && contentType!.contains('pdf')) {
       if (kIsWeb) {
-        return HtmlElementView(viewType: 'post-pdf-${widget.attachmentId}');
+        return HtmlElementView(
+            viewType: 'question-pdf-${widget.attachmentId}');
       } else {
         return PDFView(
           filePath: tempFilePath!,
@@ -722,7 +726,7 @@ class _PostAttachmentViewState extends State<PostAttachmentView> {
   // ✅ Web Image Preview (WebP via browser native decoder)
   // ============================================================
   Widget _buildWebImagePreview() {
-    final viewType = 'post-img-${widget.attachmentId}';
+    final viewType = 'question-img-${widget.attachmentId}';
 
     ui_web.platformViewRegistry.registerViewFactory(
       viewType,
@@ -762,18 +766,18 @@ class _PostAttachmentViewState extends State<PostAttachmentView> {
               padding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A237E).withOpacity(0.08),
+                color: const Color(0xFF6A1B9A).withOpacity(0.08),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.description,
-                      color: Color(0xFF1A237E), size: 16),
+                      color: Color(0xFF6A1B9A), size: 16),
                   SizedBox(width: 8),
                   Text('Word Document (read-only)',
                       style: TextStyle(
-                          fontSize: 12, color: Color(0xFF1A237E))),
+                          fontSize: 12, color: Color(0xFF6A1B9A))),
                 ],
               ),
             ),
@@ -837,7 +841,7 @@ class _PostAttachmentViewState extends State<PostAttachmentView> {
                     videoController!,
                     allowScrubbing: true,
                     colors: const VideoProgressColors(
-                      playedColor: Color(0xFF1A237E),
+                      playedColor: Color(0xFF6A1B9A),
                       bufferedColor: Colors.white38,
                       backgroundColor: Colors.white24,
                     ),
@@ -915,10 +919,10 @@ class _PostAttachmentViewState extends State<PostAttachmentView> {
                       height: 140,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFF1A237E).withOpacity(0.1),
+                        color: const Color(0xFF6A1B9A).withOpacity(0.1),
                       ),
                       child: const Icon(Icons.audiotrack,
-                          size: 70, color: Color(0xFF1A237E)),
+                          size: 70, color: Color(0xFF6A1B9A)),
                     ),
                     const SizedBox(height: 20),
                     Text(
@@ -937,7 +941,7 @@ class _PostAttachmentViewState extends State<PostAttachmentView> {
                             (v * _audioDuration.inMilliseconds).round();
                         audioPlayer?.seek(Duration(milliseconds: ms));
                       },
-                      activeColor: const Color(0xFF1A237E),
+                      activeColor: const Color(0xFF6A1B9A),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -972,7 +976,7 @@ class _PostAttachmentViewState extends State<PostAttachmentView> {
                         Container(
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Color(0xFF1A237E),
+                            color: Color(0xFF6A1B9A),
                           ),
                           child: IconButton(
                             iconSize: 50,
@@ -1056,7 +1060,7 @@ class _PostAttachmentViewState extends State<PostAttachmentView> {
               label: const Text('Open / Download'),
               onPressed: _openOrDownload,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1A237E),
+                backgroundColor: const Color(0xFF6A1B9A),
                 foregroundColor: Colors.white,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -1082,7 +1086,7 @@ class _PostAttachmentViewState extends State<PostAttachmentView> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(Icons.phone_iphone,
-                size: 80, color: Color(0xFF1A237E)),
+                size: 80, color: Color(0xFF6A1B9A)),
             const SizedBox(height: 16),
             const Text(
               'iPhone Photo (HEIC)',
@@ -1100,7 +1104,7 @@ class _PostAttachmentViewState extends State<PostAttachmentView> {
               label: const Text('Download HEIC'),
               onPressed: _openOrDownload,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1A237E),
+                backgroundColor: const Color(0xFF6A1B9A),
                 foregroundColor: Colors.white,
               ),
             ),

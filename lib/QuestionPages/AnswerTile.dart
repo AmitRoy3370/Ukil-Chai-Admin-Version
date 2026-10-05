@@ -140,7 +140,7 @@ class AnswerTile extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    answer.advocateName,
+                    answer.advocateFullName ?? answer.advocateName,
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,

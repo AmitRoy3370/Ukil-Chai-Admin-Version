@@ -1,18 +1,25 @@
+import '../RegistrationPage/gender.dart';
+
 class AdvocateDetailsModel {
   String? id;
   String? contactInfoId;
   String? locationId;
 
   String? userId;
+  String? userGenderId;
+  Gender? gender;
   String? name;
+  String? fullName;
   String? profileImageId;
 
   List<String> advocateSpeciality;
-  String? district;
+
   int? experience;
+  double rating; // 🔥 non-nullable করা হয়েছে
 
   String? licenseKey;
   String? cvHexKey;
+  String? district;
 
   List<String> degrees;
   List<String> workingExperiences;
@@ -31,6 +38,7 @@ class AdvocateDetailsModel {
       this.locationId,
       this.userId,
       this.name,
+      this.fullName,
       this.profileImageId,
       this.advocateSpeciality,
       this.experience,
@@ -44,12 +52,16 @@ class AdvocateDetailsModel {
       this.lattitude,
       this.longitude,
       this.district,
+      this.rating,
+      this.userGenderId,
+      this.gender
       );
 
   AdvocateDetailsModel.defaultConstructor()
       : advocateSpeciality = [],
         degrees = [],
-        workingExperiences = [];
+        workingExperiences = [],
+        rating = 0.0; // 🔥 ডিফল্ট ভ্যালু
 
   // 🔥 FROM JSON
   factory AdvocateDetailsModel.fromJson(Map<String, dynamic> json) {
@@ -59,6 +71,7 @@ class AdvocateDetailsModel {
       json['locationId']?.toString(),
       json['userId']?.toString(),
       json['name']?.toString(),
+      json['fullName']?.toString(),
       json['profileImageId']?.toString(),
 
       // ✅ Enum Set → List<String>
@@ -85,7 +98,7 @@ class AdvocateDetailsModel {
       json['phone']?.toString(),
 
       json['locationName']?.toString(),
-
+      
       json['lattitude'] != null
           ? double.tryParse(json['lattitude'].toString())
           : null,
@@ -94,6 +107,11 @@ class AdvocateDetailsModel {
           ? double.tryParse(json['longitude'].toString())
           : null,
       json['district'] != null ? json['district'] : '',
+      json['rating'] != null 
+          ? double.tryParse(json['rating'].toString()) ?? 0.0 
+          : 0.0,
+      json['userGenderId'],
+      json['gender']
     );
   }
 }

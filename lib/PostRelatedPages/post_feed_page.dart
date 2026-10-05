@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import './AdvocatePost.dart';
 import './PostService.dart';
 import './post_card.dart';
+import '../HomePage.dart';
 import '../main.dart';
 
 class PostFeedPage extends StatefulWidget {
@@ -23,7 +24,7 @@ class _PostFeedPageState extends State<PostFeedPage> {
     // Always use pushAndRemoveUntil to ensure we go to main page
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const MyHomePage(title: 'উকিল চাই')),
+      MaterialPageRoute(builder: (context) => const MyHomePage(title: 'উকিল')),
       (route) => false,
     );
   }
@@ -31,7 +32,17 @@ class _PostFeedPageState extends State<PostFeedPage> {
   Future<List<PostResponse>> getPosts() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token') ?? '';
+
     final data = await PostService.fetchAllPosts(token);
+
+    /*ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('data :- $data'),
+        duration: Duration(seconds: 2),
+      ),
+    );*/
+
+
     return data.reversed.toList();
   }
 

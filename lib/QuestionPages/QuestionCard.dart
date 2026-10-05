@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:advocatechaiadmin/QuestionPages/question_response.dart';
+import '../QuestionPages/question_response.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -23,6 +23,8 @@ import 'AnswerTile.dart';
 import 'QuestionModel.dart';
 import 'QuestionService.dart';
 import '../PageTransition.dart';
+import '../QuestionPages/QuestionAttachmentViewer.dart';
+import '../QuestionPages/question_attachment_widget.dart';
 
 class QuestionCard extends StatefulWidget {
   final QuestionResponse question;
@@ -44,7 +46,7 @@ class _QuestionCardState extends State<QuestionCard> {
 
   PlatformFile? selectedFile;
   String? fileName;
-  String? fileExtension;
+  String? fileExtension, myLoggedInToken;
 
   final List<PageTransitionType> _smoothAnimations = AnimatedRoute.getCompanySafeAnimations();
 
@@ -80,6 +82,8 @@ class _QuestionCardState extends State<QuestionCard> {
   Future<void> loadUser() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     currentUserId = prefs.getString("userId") ?? "";
+    //SharedPreferences prefs = await SharedPreferences.getInstance();
+    myLoggedInToken = prefs.getString('jwt_token') ?? '';
 
     setState(() {
       isMyQuestion = currentUserId == widget.question.userId;
@@ -418,14 +422,24 @@ class _QuestionCardState extends State<QuestionCard> {
                         ),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Text(
-                        widget.question.questionType.label,
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: Row(
+                            children: [
+                                Icon(
+                                   widget.question.questionType.icon,
+                                   size: 14,
+                                   color: Colors.white,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                   widget.question.questionType.label,
+                                   style: GoogleFonts.inter(
+                                   fontSize: 11,
+                                   fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    ),
+                                ),
+                             ],
+                            ),
                     ),
                     const Spacer(),
                     if (isMyQuestion)
@@ -501,7 +515,7 @@ class _QuestionCardState extends State<QuestionCard> {
                       child: Text(
                         widget.question.userName.isNotEmpty ? widget.question.userName[0].toUpperCase() : "U",
                         style: GoogleFonts.inter(
-                          fontSize: 14,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.purple,
                         ),
@@ -510,9 +524,9 @@ class _QuestionCardState extends State<QuestionCard> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        widget.question.userName,
+                        widget.question.fullName ?? widget.question.userName,
                         style: GoogleFonts.inter(
-                          fontSize: 14,
+                          fontSize: 18,
                           fontWeight: FontWeight.w600,
                           color: Colors.grey[800],
                         ),
@@ -526,7 +540,7 @@ class _QuestionCardState extends State<QuestionCard> {
                 Text(
                   widget.question.message,
                   style: GoogleFonts.inter(
-                    fontSize: 15,
+                    fontSize: 18,
                     color: Colors.grey[700],
                     height: 1.4,
                   ),
@@ -535,8 +549,8 @@ class _QuestionCardState extends State<QuestionCard> {
 
                 // FIXED: Only show attachment button if attachment actually exists
                 if (hasAttachment)
-                  InkWell(
-                    onTap: () => openAttachment(context, widget.question.attachmentId!),
+                  /*InkWell(
+                    onTap: () => /*openAttachment(context, widget.question.attachmentId!, token),*/ Navigator.push(context, MaterialPageRoute(builder:(context) => QuestionAttachmentViewer(attachmentId:widget.question.attachmentId!, jwtToken: myLoggedInToken))),
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -558,12 +572,16 @@ class _QuestionCardState extends State<QuestionCard> {
                             ),
                           ),
                           const SizedBox(width: 4),
-                          Icon(Icons.open_in_new, size: 14, color: Colors.purple),
+                          Icon(Icons.open_in_new, size: 18, color: Colors.purple),
                         ],
                       ),
                     ),
+                  ),*/
+                  QuestionAttachmentWidget(
+                    attachmentId: widget.question.attachmentId!,
+                    height: 150,
+                    onViewAttachment: _navigateToAttachmentViewer,
                   ),
-
                 const Divider(color: Colors.grey, height: 24),
 
                 // Answers Section
@@ -574,7 +592,7 @@ class _QuestionCardState extends State<QuestionCard> {
                     Text(
                       widget.question.answers.isEmpty ? "No answers yet" : "Answers (${widget.question.answers.length})",
                       style: GoogleFonts.inter(
-                        fontSize: 13,
+                        fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Colors.grey[600],
                       ),
@@ -594,7 +612,7 @@ class _QuestionCardState extends State<QuestionCard> {
                       child: Text(
                         "Be the first to answer this question",
                         style: GoogleFonts.inter(
-                          fontSize: 13,
+                          fontSize: 16,
                           color: Colors.grey[500],
                         ),
                       ),
@@ -611,4 +629,28 @@ class _QuestionCardState extends State<QuestionCard> {
       ),
     );
   }
+
+  // ========== অ্যাটাচমেন্ট ভিউয়ারের জন্য নেভিগেশন ==========
+  void _navigateToAttachmentViewer(String attachmentId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token') ?? '';
+
+    /*if (token.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login to view attachment')),
+      );
+      return;
+    }*/
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => QuestionAttachmentViewer(
+          attachmentId: attachmentId,
+          jwtToken: token,
+        ),
+      ),
+    );
+  }
+
 }

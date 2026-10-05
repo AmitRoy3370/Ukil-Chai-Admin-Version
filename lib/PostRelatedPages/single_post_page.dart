@@ -12,15 +12,13 @@ import 'PostAttachmentViewer.dart';
 import 'reaction_bar.dart';
 import '../PageTransition.dart';
 import 'attachment_widget.dart';
-import '../AdvocatePages/AdvocateDetails.dart';
-import '../AdvocatePages/AdvocateDetailsModel.dart';
 
-class PostCard extends StatefulWidget {
+class SinglePostPage extends StatefulWidget {
   final PostResponse post;
   final bool? canReact;
   final Function? onReactionChanged;
 
-  const PostCard({
+  const SinglePostPage({
     super.key,
     required this.post,
     this.canReact,
@@ -28,10 +26,10 @@ class PostCard extends StatefulWidget {
   });
 
   @override
-  State<StatefulWidget> createState() => _PostCardState();
+  State<StatefulWidget> createState() => _SinglePostPageState();
 }
 
-class _PostCardState extends State<PostCard> {
+class _SinglePostPageState extends State<SinglePostPage> {
   // Smooth animations only
   final List<PageTransitionType> _smoothAnimations = AnimatedRoute.getCompanySafeAnimations();
   
@@ -65,12 +63,12 @@ class _PostCardState extends State<PostCard> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token') ?? '';
 
-    /*if (token.isEmpty) {
+    if (token.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please login to view attachment')),
       );
       return;
-    }*/
+    }
 
     Navigator.push(
       context,
@@ -83,9 +81,11 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
+@override
+Widget build(BuildContext context) {
+  return SingleChildScrollView(
+    physics: const BouncingScrollPhysics(),
+    child: Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Material(
         color: Colors.transparent,
@@ -105,6 +105,7 @@ class _PostCardState extends State<PostCard> {
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min, // 🔥 এটা যোগ করুন
               children: [
                 // ========== হেডার ==========
                 Row(
@@ -138,77 +139,33 @@ class _PostCardState extends State<PostCard> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          GestureDetector(
-  onTap: () async {
-    final response = await http.get(
-      Uri.parse("${BASE_URL.Urls().baseURL}advocate/${widget.post.advocateId}")
-    );
-    
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> responseData = jsonDecode(response.body);
-      
-      // Convert to AdvocateDetailsModel using fromJson factory
-      final AdvocateDetailsModel advocate = AdvocateDetailsModel.fromJson(responseData);
-      
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AdvocateDetails(advocateDetailsModel: advocate),
-        ),
-      );
-    }
-  }, // <-- THIS COMMA WAS MISSING
-  child: Text(
-    widget.post.advocateFullName ?? widget.post.advocateName,
-    style: GoogleFonts.inter(
-      fontSize: 16,
-      fontWeight: FontWeight.bold,
-      color: Colors.grey[800],
-    ),
-  ),
-),
-                          /*Text(
+                          Text(
                             widget.post.advocateFullName ?? widget.post.advocateName,
                             style: GoogleFonts.inter(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: Colors.grey[800],
                             ),
-                          ),*/
+                          ),
                           const SizedBox(height: 4),
-                          // ========== 🔥 স্পেশালিটি ব্যাজ (শুধু মার্ক করা অংশে) ==========
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  //Colors.purple.shade600,
-                                  Colors.blue.shade600, 
-                                  Colors.blue.shade600,
-                                ],
+                                colors: [Colors.purple.shade400, Colors.blue.shade400],
                               ),
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min, // 🔥 শুধু কন্টেন্ট সাইজ নিবে
-                              children: [
-                                Icon(
-                                  widget.post.postType.icon,
-                                  size: 12,
-                                  color: Colors.white,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  widget.post.postType.label,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
+                            child: Text(
+                              widget.post.postType.label,
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ],
@@ -218,12 +175,12 @@ class _PostCardState extends State<PostCard> {
                 ),
                 const SizedBox(height: 12),
 
-                // ========== 🔥 পোস্ট কন্টেন্ট (See More/Less সহ) ==========
+                // ========== পোস্ট কন্টেন্ট ==========
                 _buildPostContent(),
                 
                 const SizedBox(height: 12),
 
-                // ========== অ্যাটাচমেন্ট উইজেট ==========
+                // ========== অ্যাটাচমেন্ট ==========
                 if (hasAttachment)
                   AttachmentWidget(
                     attachmentId: widget.post.attachmentId!,
@@ -248,8 +205,9 @@ class _PostCardState extends State<PostCard> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   // ========== পোস্ট কন্টেন্ট বিল্ডার (See More/Less সহ) ==========
   Widget _buildPostContent() {
