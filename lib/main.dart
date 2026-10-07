@@ -1,22 +1,24 @@
 import 'dart:async';
 import 'dart:convert';
-import '../ProfilePage/ProfileAvatar.dart';
-import '../ProfilePage/ProfileImageWidget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'AdvocatePages/AdvocateFilterPage.dart';
 import 'AdvocatePages/AdvocateHomePage.dart';
 import 'ChatRelatedPages/AllUserChatListScreen.dart';
 import 'ChatRelatedPages/user_active_service.dart';
+import 'GroupChat/GroupChatListScreen.dart';           // ✅ NEW
 import 'HomePage.dart';
 import 'LifeCycles/LifecycleManager.dart';
 import 'LogInPage/LogIn.dart';
 import 'NotificationPages/notification_page.dart';
 import 'NotificationPages/notification_socket_service.dart';
 import 'PostRelatedPages/post_feed_page.dart';
+import 'ProfilePage/ProfileAvatar.dart';               // ✅ keep
+import 'ProfilePage/ProfileImageWidget.dart';          // ✅ keep
 import 'ProfilePage/ProfileMenuPage.dart';
 import 'Utils/BaseURL.dart' as BASE_URL;
 import 'TermsAndPrivacyScreen.dart';
@@ -489,6 +491,27 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  // ✅ NEW — Group Chats
+  Future<void> _openGroupChats() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+
+    if (token == null) {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const LogIn()),
+      );
+      if (result == true && mounted) await refreshUserData();
+      return;
+    }
+
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const GroupChatListScreen()),
+    );
+  }
+
   // ============================================================
   // Build
   // ============================================================
@@ -594,6 +617,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
         ],
       ),
+
       // ============================================================
       // DRAWER
       // ============================================================
@@ -638,6 +662,13 @@ class _MyHomePageState extends State<MyHomePage> {
                       icon: Icons.chat,
                       title: "Chats",
                       index: 3,
+                    ),
+
+                    // ✅ NEW — Group Chats
+                    _buildModernDrawerItem(
+                      icon: Icons.groups,
+                      title: "Group Chats",
+                      index: 15,
                     ),
 
                     const Divider(
@@ -702,6 +733,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ),
+
       body: isLoading
           ? const SplashScreen()
           : (bottomPages.isNotEmpty && _selectedIndex < bottomPages.length)
@@ -783,13 +815,14 @@ class _MyHomePageState extends State<MyHomePage> {
     required int index,
   }) {
     // ✅ "Special page" indices — never highlight as a tab
-    //    (Director/Shareholder Profile removed)
+    //    (now also includes Group Chats index 15)
     final isSpecialPage = (index == 7 ||
         index == 8 ||
         index == 11 ||
         index == 12 ||
         index == 13 ||
-        index == 14);
+        index == 14 ||
+        index == 15);
     final isSelected = isSpecialPage ? false : (_selectedIndex == index);
 
     return AnimatedContainer(
@@ -908,6 +941,13 @@ class _MyHomePageState extends State<MyHomePage> {
     if (newIndex == 14) {
       Navigator.pop(context);
       await _openMyCompanies();
+      return;
+    }
+
+    // ✅ NEW — Group Chats
+    if (newIndex == 15) {
+      Navigator.pop(context);
+      await _openGroupChats();
       return;
     }
 
