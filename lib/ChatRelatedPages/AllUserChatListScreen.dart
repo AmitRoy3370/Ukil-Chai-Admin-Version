@@ -24,7 +24,8 @@ class AllUserChatListScreen extends StatefulWidget {
   _AllUserChatListScreenState createState() => _AllUserChatListScreenState();
 }
 
-class _AllUserChatListScreenState extends State<AllUserChatListScreen> {
+class _AllUserChatListScreenState extends State<AllUserChatListScreen>
+    with WidgetsBindingObserver {
   List<ChatListItem> _chatList = [];
   List<ChatListItem> _filteredChatList = [];
   bool _isLoading = true;
@@ -41,7 +42,23 @@ class _AllUserChatListScreenState extends State<AllUserChatListScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadChatList();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      _loadChatList();
+    }
   }
 
   Future<void> _loadChatList() async {
@@ -60,7 +77,6 @@ class _AllUserChatListScreenState extends State<AllUserChatListScreen> {
         throw Exception('Need to login first to load chat list');
       }
 
-
       // Step 1: Get all center admins
       final centerAdminResponse = await http.get(
         Uri.parse('${BASE_URL.Urls().baseURL}chat/users/$userId'),
@@ -73,7 +89,6 @@ class _AllUserChatListScreenState extends State<AllUserChatListScreen> {
 
       if (centerAdminResponse.statusCode == 200) {
         final decodedResponse = jsonDecode(centerAdminResponse.body);
-        //print('Loaded ${_centerAdmins.length} Users');
 
         chatResponses = List<ChatResponse>.from(
           decodedResponse.map((item) => ChatResponse.fromJson(item)),
@@ -91,6 +106,7 @@ class _AllUserChatListScreenState extends State<AllUserChatListScreen> {
       }
     } catch (e) {
       print('Error loading chat list: $e');
+      if (!mounted) return;
       setState(() {
         _hasError = true;
         _errorMessage = e.toString();
@@ -173,9 +189,6 @@ class _AllUserChatListScreenState extends State<AllUserChatListScreen> {
       }
     }
 
-    bool val = false;
-
-
     try {
       for (var admin in chatResponses) {
         try {
@@ -221,7 +234,7 @@ class _AllUserChatListScreenState extends State<AllUserChatListScreen> {
           bool? isOnline =
               activeness.isNotEmpty && activeness.containsKey(otherUserId);
           bool? isUnread =
-          senderInfo != null ? senderInfo.readChat : receiverInfo?.readChat;
+              senderInfo != null ? senderInfo.readChat : receiverInfo?.readChat;
 
           print(
             "userId :- $otherUserId , userName :- $otherUserName , isOnline :- $isOnline , isUnread :- $isUnread , timeStamp :- $timeStamp , lateMessage :- $lateMessage , userAvatar :- $userAvatar",
@@ -261,6 +274,7 @@ class _AllUserChatListScreenState extends State<AllUserChatListScreen> {
         print('Error sorting chat list: $e');
       }
 
+      if (!mounted) return;
       setState(() {
         _chatList = tempList;
         _filteredChatList = List.from(_chatList);
@@ -268,6 +282,7 @@ class _AllUserChatListScreenState extends State<AllUserChatListScreen> {
       });
     } catch (e) {
       print('Error building chat list: $e');
+      if (!mounted) return;
       setState(() {
         _hasError = true;
         _errorMessage = 'Error building chat list: $e';
@@ -337,7 +352,8 @@ class _AllUserChatListScreenState extends State<AllUserChatListScreen> {
   void _navigateToChat(String userId, String userName) async {
     await _markChatAsRead(userId);
 
-    Navigator.push(
+    if (!mounted) return;
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ChatScreen(
@@ -348,6 +364,10 @@ class _AllUserChatListScreenState extends State<AllUserChatListScreen> {
         ),
       ),
     );
+
+    // ✅ Reload after returning from a chat
+    if (!mounted) return;
+    _loadChatList();
   }
 
   Widget _buildChatListItem(ChatListItem chat) {
@@ -430,7 +450,6 @@ class _AllUserChatListScreenState extends State<AllUserChatListScreen> {
               ),
           ],
         ),
-
         onTap: () => _navigateToChat(chat.userId, chat.userName),
       ),
     );
@@ -577,20 +596,21 @@ class _AllUserChatListScreenState extends State<AllUserChatListScreen> {
             child: _isLoading
                 ? _buildLoadingState()
                 : _hasError
-                ? _buildErrorState()
-                : _filteredChatList.isEmpty
-                ? _buildEmptyState()
-                : RefreshIndicator(
-                    onRefresh: () async {
-                      await _loadChatList();
-                    },
-                    child: ListView.builder(
-                      itemCount: _filteredChatList.length,
-                      itemBuilder: (context, index) {
-                        return _buildChatListItem(_filteredChatList[index]);
-                      },
-                    ),
-                  ),
+                    ? _buildErrorState()
+                    : _filteredChatList.isEmpty
+                        ? _buildEmptyState()
+                        : RefreshIndicator(
+                            onRefresh: () async {
+                              await _loadChatList();
+                            },
+                            child: ListView.builder(
+                              itemCount: _filteredChatList.length,
+                              itemBuilder: (context, index) {
+                                return _buildChatListItem(
+                                    _filteredChatList[index]);
+                              },
+                            ),
+                          ),
           ),
         ],
       ),

@@ -24,6 +24,10 @@ class _MyQuestionsPageState extends State<MyQuestionsPage> {
   String? _userId;
   bool _loadingUserId = true;
 
+  /// The future is cached in state so it doesn't re-fire on every rebuild.
+  /// We refresh it manually when the user pulls-to-refresh or taps Retry.
+  late Future<List<QuestionResponse>> _questionsFuture;
+
   @override
   void initState() {
     super.initState();
@@ -45,6 +49,8 @@ class _MyQuestionsPageState extends State<MyQuestionsPage> {
       setState(() {
         _userId = id;
         _loadingUserId = false;
+        // Build the future once, after we know the userId
+        _questionsFuture = _fetchQuestions();
       });
     } catch (_) {
       if (!mounted) return;
@@ -54,9 +60,33 @@ class _MyQuestionsPageState extends State<MyQuestionsPage> {
     }
   }
 
+  /// Always returns a `List<QuestionResponse>` (never null).
+  /// Catches any exception and rethrows a clean error so the
+  /// FutureBuilder can show a proper error UI.
+  Future<List<QuestionResponse>> _fetchQuestions() async {
+    if (_userId == null || _userId!.isEmpty) {
+      return <QuestionResponse>[];
+    }
+    try {
+      final result = await QuestionService.getByUser(_userId!);
+      // Defensive: some services return `null` on empty — normalise to [].
+      if (result == null) return <QuestionResponse>[];
+      // Defensive: reverse so newest first (matches previous behaviour).
+      return result.reversed.toList();
+    } catch (e) {
+      // Re-throw so FutureBuilder knows it failed
+      throw Exception('Failed to load questions: $e');
+    }
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _questionsFuture = _fetchQuestions();
+    });
+    await _questionsFuture;
+  }
+
   /// Filters questions client-side by keyword.
-  /// Used only when the search box has text, since the "by user" endpoint
-  /// doesn't support a keyword parameter.
   List<QuestionResponse> _applySearch(List<QuestionResponse> list) {
     if (searchText.trim().isEmpty) return list;
     final q = searchText.toLowerCase().trim();
@@ -70,8 +100,6 @@ class _MyQuestionsPageState extends State<MyQuestionsPage> {
       if (name.contains(q)) return true;
 
       // Match on any answer text
-      // ⚠️ Change `.message` below to whichever field your
-      //    AnswerResponse uses for the answer body.
       for (final a in item.answers) {
         if (a.message.toLowerCase().contains(q)) return true;
       }
@@ -183,9 +211,10 @@ class _MyQuestionsPageState extends State<MyQuestionsPage> {
         // Questions List
         Expanded(
           child: FutureBuilder<List<QuestionResponse>>(
-            future: QuestionService.getByUser(_userId!),
+            future: _questionsFuture,
             builder: (context, snapshot) {
-              if (!snapshot.hasData) {
+              // ── 1. Still loading ─────────────────────────────────────
+              if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -201,61 +230,135 @@ class _MyQuestionsPageState extends State<MyQuestionsPage> {
                 );
               }
 
-              List<QuestionResponse> questions = snapshot.data!;
-              questions = questions.reversed.toList();
-
-              // Apply client-side keyword filter
-              questions = _applySearch(questions);
-
-              if (questions.isEmpty) {
+              // ── 2. Error (network / parse / etc.) ────────────────────
+              if (snapshot.hasError) {
                 return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.question_answer_outlined,
-                        size: 80,
-                        color: Colors.grey[300],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        searchText.isEmpty
-                            ? "You haven't asked any questions yet"
-                            : 'No matching questions',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          color: Colors.grey[500],
-                          fontWeight: FontWeight.w500,
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 80,
+                          color: Colors.red[300],
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        searchText.isEmpty
-                            ? 'Your asked questions will appear here'
-                            : 'Try a different search term',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: Colors.grey[400],
+                        const SizedBox(height: 16),
+                        Text(
+                          'Failed to load questions',
+                          style: GoogleFonts.inter(
+                            fontSize: 18,
+                            color: Colors.grey[700],
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        Text(
+                          'Please check your connection and try again.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton.icon(
+                          onPressed: _refresh,
+                          icon: const Icon(Icons.refresh, size: 18),
+                          label: const Text('Retry'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.purple,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               }
 
+              // ── 3. Got data (possibly empty) ─────────────────────────
+              // If we reach here, the future completed successfully.
+              // snapshot.data may be null in theory; normalise to [].
+              final rawList = snapshot.data ?? <QuestionResponse>[];
+
+              // Apply client-side keyword filter
+              final questions = _applySearch(rawList);
+
+              // ── 3a. Empty state ──────────────────────────────────────
+              if (questions.isEmpty) {
+                return RefreshIndicator(
+                  onRefresh: _refresh,
+                  color: Colors.purple,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      // Make it scrollable so RefreshIndicator works
+                      return SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight,
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.question_answer_outlined,
+                                  size: 80,
+                                  color: Colors.grey[300],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  searchText.isEmpty
+                                      ? "You haven't asked any questions yet"
+                                      : 'No matching questions',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 18,
+                                    color: Colors.grey[500],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  searchText.isEmpty
+                                      ? 'Your asked questions will appear here'
+                                      : 'Try a different search term',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    color: Colors.grey[400],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              }
+
+              // ── 3b. Non-empty list ───────────────────────────────────
               return RefreshIndicator(
-                onRefresh: () async {
-                  setState(() {});
-                },
+                onRefresh: _refresh,
                 color: Colors.purple,
                 child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
                   itemCount: questions.length,
                   itemBuilder: (context, i) {
                     return QuestionCard(
                       question: questions[i],
                       refreshMethod: () {
-                        setState(() {});
+                        _refresh();
                       },
                     );
                   },

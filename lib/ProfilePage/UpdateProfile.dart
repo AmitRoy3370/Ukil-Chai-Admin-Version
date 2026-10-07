@@ -25,6 +25,7 @@ class UpdateProfile extends StatefulWidget {
 class _UpdateProfileState extends State<UpdateProfile> {
   final TextEditingController searchController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
+  final TextEditingController fullNameController = TextEditingController(); // ✅ NEW
   final TextEditingController oldNameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController oldPasswordController = TextEditingController();
@@ -52,29 +53,45 @@ class _UpdateProfileState extends State<UpdateProfile> {
 
   Stream<Position>? _positionStream;
 
-  // Focus nodes
   final FocusNode _oldNameFocus = FocusNode();
   final FocusNode _nameFocus = FocusNode();
+  final FocusNode _fullNameFocus = FocusNode(); // ✅ NEW
   final FocusNode _oldPasswordFocus = FocusNode();
   final FocusNode _newPasswordFocus = FocusNode();
   final FocusNode _emailFocus = FocusNode();
   final FocusNode _phoneFocus = FocusNode();
 
-  get userIdValue => null;
-
-  List<String> admins = [];
-  List<String> advocates = [];
-
-  late List<String?> selectedDistricts = [];
+  List<String?> selectedDistricts = [];
 
   final List<String> bangladeshDistricts = AdvocateSpeciality.values
       .map((e) => e.name)
       .toList();
 
+  // ============ RESPONSIVE HELPERS ============
+  bool get _isMobile => MediaQuery.of(context).size.width < 600;
+  bool get _isTablet =>
+      MediaQuery.of(context).size.width >= 600 &&
+      MediaQuery.of(context).size.width < 1024;
+  bool get _isDesktop => MediaQuery.of(context).size.width >= 1024;
+
+  double get _formHeight {
+    final screenHeight = MediaQuery.of(context).size.height;
+    if (_isDesktop) return screenHeight * 0.85;
+    if (_isTablet) return screenHeight * 0.80;
+    if (screenHeight < 700) return screenHeight * 0.95;
+    return screenHeight * 0.90;
+  }
+
+  double get _horizontalPadding {
+    if (_isDesktop) return 24;
+    if (_isTablet) return 20;
+    return 16;
+  }
+
   Future<File?> convertBytesToFile(
-      Uint8List bytes, {
-        required String extension,
-      }) async {
+    Uint8List bytes, {
+    required String extension,
+  }) async {
     if (kIsWeb) {
       print('Conversion to File not supported on web. Use bytes directly.');
       return null;
@@ -108,14 +125,18 @@ class _UpdateProfileState extends State<UpdateProfile> {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
+      if (!mounted) return;
       setState(() {
         oldNameController.text = data["name"] ?? "";
         nameController.text = data["name"] ?? "";
+        // ✅ NEW: Load full name
+        fullNameController.text = data["fullName"] ?? "";
       });
 
       final profileImageId = data["profileImageId"];
       if (profileImageId != null) {
-        final profileImageURL = "${baseURL.Urls().baseURL}user/download/$profileImageId";
+        final profileImageURL =
+            "${baseURL.Urls().baseURL}user/download/$profileImageId";
         final profileImageResponse = await http.get(
           Uri.parse(profileImageURL),
           headers: {
@@ -123,12 +144,16 @@ class _UpdateProfileState extends State<UpdateProfile> {
             "Authorization": "Bearer $token",
           },
         );
-        if (profileImageResponse.statusCode == 200 && profileImageResponse.bodyBytes.isNotEmpty) {
+        if (profileImageResponse.statusCode == 200 &&
+            profileImageResponse.bodyBytes.isNotEmpty) {
           final bytes = profileImageResponse.bodyBytes;
-          bool isJpeg = bytes.length > 4 && bytes[0] == 0xFF && bytes[1] == 0xD8;
+          bool isJpeg =
+              bytes.length > 4 && bytes[0] == 0xFF && bytes[1] == 0xD8;
           bool isPng = bytes.length > 4 &&
-              bytes[0] == 0x89 && bytes[1] == 0x50 &&
-              bytes[2] == 0x4E && bytes[3] == 0x47;
+              bytes[0] == 0x89 &&
+              bytes[1] == 0x50 &&
+              bytes[2] == 0x4E &&
+              bytes[3] == 0x47;
           bool isLikelyImage = isJpeg || isPng;
 
           if (isLikelyImage && mounted) {
@@ -137,7 +162,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
             });
             try {
               final extension = isJpeg ? 'jpg' : 'png';
-              final file = await convertBytesToFile(bytes, extension: extension);
+              final file =
+                  await convertBytesToFile(bytes, extension: extension);
               if (mounted) {
                 setState(() {
                   pickedImage = file;
@@ -154,7 +180,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
         }
       }
 
-      final locationURL = "${baseURL.Urls().baseURL}userLocation/findByUserId/$userId";
+      final locationURL =
+          "${baseURL.Urls().baseURL}userLocation/findByUserId/$userId";
       final locationResponse = await http.get(
         Uri.parse(locationURL),
         headers: {
@@ -168,7 +195,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
         if (mounted) {
           setState(() {
             locationPresent = true;
-            locationTextController.text = locationResponseData["locationName"] ?? "";
+            locationTextController.text =
+                locationResponseData["locationName"] ?? "";
             latitude = locationResponseData["lattitude"] ?? 0.0;
             longitude = locationResponseData["longitude"] ?? 0.0;
             _selectedPosition = lat_lng.LatLng(latitude, longitude);
@@ -176,7 +204,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
         }
       }
 
-      final userContactInfoURL = "${baseURL.Urls().baseURL}user/contact-info/user?userId=$userId";
+      final userContactInfoURL =
+          "${baseURL.Urls().baseURL}user/contact-info/user?userId=$userId";
       final userContactInfoResponse = await http.get(
         Uri.parse(userContactInfoURL),
         headers: {
@@ -186,11 +215,14 @@ class _UpdateProfileState extends State<UpdateProfile> {
       );
 
       if (userContactInfoResponse.statusCode == 200) {
-        final userContactInfoResponseData = jsonDecode(userContactInfoResponse.body);
+        final userContactInfoResponseData =
+            jsonDecode(userContactInfoResponse.body);
         if (mounted) {
           setState(() {
-            emailController.text = userContactInfoResponseData["email"] ?? "";
-            phoneController.text = userContactInfoResponseData["phone"] ?? "";
+            emailController.text =
+                userContactInfoResponseData["email"] ?? "";
+            phoneController.text =
+                userContactInfoResponseData["phone"] ?? "";
           });
         }
       }
@@ -207,7 +239,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
         final centerAdminResponseData = jsonDecode(centerAdminResponse.body);
         if (mounted) {
           setState(() {
-            selectedDistricts = List<String?>.from(centerAdminResponseData["advocateSpeciality"] ?? []);
+            selectedDistricts = List<String?>.from(
+                centerAdminResponseData["advocateSpeciality"] ?? []);
           });
         }
       }
@@ -223,10 +256,12 @@ class _UpdateProfileState extends State<UpdateProfile> {
         return StatefulBuilder(
           builder: (context, dialogSetState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape:
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               title: const Text(
                 "Select Speciality",
-                style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+                style:
+                    TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
               ),
               content: SizedBox(
                 width: double.maxFinite,
@@ -253,7 +288,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("Done", style: TextStyle(color: Colors.blue)),
+                  child:
+                      const Text("Done", style: TextStyle(color: Colors.blue)),
                 ),
               ],
             );
@@ -267,7 +303,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
     final confirm = await showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("Remove District"),
         content: Text("Are you sure you want to remove $district?"),
         actions: [
@@ -311,6 +348,7 @@ class _UpdateProfileState extends State<UpdateProfile> {
   void dispose() {
     searchController.dispose();
     nameController.dispose();
+    fullNameController.dispose(); // ✅ NEW
     oldNameController.dispose();
     passwordController.dispose();
     oldPasswordController.dispose();
@@ -319,6 +357,7 @@ class _UpdateProfileState extends State<UpdateProfile> {
     locationTextController.dispose();
     _oldNameFocus.dispose();
     _nameFocus.dispose();
+    _fullNameFocus.dispose(); // ✅ NEW
     _oldPasswordFocus.dispose();
     _newPasswordFocus.dispose();
     _emailFocus.dispose();
@@ -329,9 +368,11 @@ class _UpdateProfileState extends State<UpdateProfile> {
   void _startLocationUpdates() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enable location service")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please enable location service")),
+        );
+      }
       return;
     }
 
@@ -339,17 +380,21 @@ class _UpdateProfileState extends State<UpdateProfile> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Location permission denied")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Location permission denied")),
+          );
+        }
         return;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Location permission denied forever")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Location permission denied forever")),
+        );
+      }
       return;
     }
 
@@ -382,6 +427,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
       locationPresent ? latitude : position.latitude,
       locationPresent ? longitude : position.longitude,
     );
+
+    if (!mounted) return;
 
     setState(() {
       _devicePosition = newPos;
@@ -481,8 +528,10 @@ class _UpdateProfileState extends State<UpdateProfile> {
       if (kDebugMode) print('Search error: $e');
     }
 
-    if (pos == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No results found")));
+    if (pos == null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No results found")),
+      );
     }
   }
 
@@ -501,14 +550,15 @@ class _UpdateProfileState extends State<UpdateProfile> {
               title: const Text('গ্যালারি থেকে নির্বাচন করুন'),
               onTap: () async {
                 Navigator.pop(context);
-                XFile? file = await ImagePicker().pickImage(source: ImageSource.gallery);
+                XFile? file = await ImagePicker()
+                    .pickImage(source: ImageSource.gallery);
                 if (file != null) {
                   if (kIsWeb) {
                     webImageBytes = await file.readAsBytes();
                   } else {
                     pickedImage = File(file.path);
                   }
-                  setState(() {});
+                  if (mounted) setState(() {});
                 }
               },
             ),
@@ -517,14 +567,15 @@ class _UpdateProfileState extends State<UpdateProfile> {
               title: const Text('ক্যামেরা দিয়ে তুলুন'),
               onTap: () async {
                 Navigator.pop(context);
-                XFile? file = await ImagePicker().pickImage(source: ImageSource.camera);
+                XFile? file = await ImagePicker()
+                    .pickImage(source: ImageSource.camera);
                 if (file != null) {
                   if (kIsWeb) {
                     webImageBytes = await file.readAsBytes();
                   } else {
                     pickedImage = File(file.path);
                   }
-                  setState(() {});
+                  if (mounted) setState(() {});
                 }
               },
             ),
@@ -564,9 +615,12 @@ class _UpdateProfileState extends State<UpdateProfile> {
       request.headers['Authorization'] = 'Bearer $token';
 
       request.fields["name"] = nameController.text.trim();
+      // ✅ NEW: Send full name to backend
+      request.fields["FullName"] = fullNameController.text.trim();
       request.fields["password"] = passwordController.text.trim();
 
-      final imageFindingUri = Uri.parse("${baseURL.Urls().baseURL}user/search?userId=$userId");
+      final imageFindingUri =
+          Uri.parse("${baseURL.Urls().baseURL}user/search?userId=$userId");
       final imageFindingResponse = await http.get(
         imageFindingUri,
         headers: {
@@ -611,25 +665,31 @@ class _UpdateProfileState extends State<UpdateProfile> {
         await _updateCenterAdminInfo(userId!, token);
 
         _showSnackBar("প্রোফাইল আপডেট সফল হয়েছে! 🎉", Colors.green);
-        
+
         Future.delayed(const Duration(seconds: 2), () {
           if (mounted) {
             setState(() => showForm = false);
           }
         });
       } else {
-        _showSnackBar("আপডেট ব্যর্থ হয়েছে: ${response.statusCode}", Colors.red);
+        _showSnackBar(
+            "আপডেট ব্যর্থ হয়েছে: ${response.statusCode}", Colors.red);
       }
     } catch (e) {
       _showSnackBar("একটি ত্রুটি ঘটেছে: $e", Colors.red);
     } finally {
-      setState(() => isUpdating = false);
+      if (mounted) setState(() => isUpdating = false);
     }
   }
 
   bool _validateForm() {
     if (nameController.text.isEmpty) {
-      _showSnackBar("নতুন নাম লিখুন", Colors.orange);
+      _showSnackBar("নতুন ইউজার নেম লিখুন", Colors.orange);
+      return false;
+    }
+    // ✅ NEW: Full name required
+    if (fullNameController.text.isEmpty) {
+      _showSnackBar("পূর্ণ নাম লিখুন", Colors.orange);
       return false;
     }
     if (oldPasswordController.text.isEmpty) {
@@ -648,7 +708,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
   }
 
   Future<void> _updateContactInfo(String userId, String token) async {
-    final contactInfoUri = Uri.parse("${baseURL.Urls().baseURL}user/contact-info/user?userId=$userId");
+    final contactInfoUri = Uri.parse(
+        "${baseURL.Urls().baseURL}user/contact-info/user?userId=$userId");
     final response = await http.get(
       contactInfoUri,
       headers: {
@@ -660,7 +721,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       String contactInfoId = data["id"];
-      final updateUri = Uri.parse("${baseURL.Urls().baseURL}user/contact-info/update?userId=$userId&contactInfoId=$contactInfoId");
+      final updateUri = Uri.parse(
+          "${baseURL.Urls().baseURL}user/contact-info/update?userId=$userId&contactInfoId=$contactInfoId");
       await http.put(
         updateUri,
         headers: {
@@ -669,12 +731,17 @@ class _UpdateProfileState extends State<UpdateProfile> {
         },
         body: jsonEncode({
           "userId": userId,
-          "email": emailController.text.isNotEmpty ? emailController.text.trim() : null,
-          "phone": phoneController.text.isNotEmpty ? phoneController.text.trim() : null,
+          "email": emailController.text.isNotEmpty
+              ? emailController.text.trim()
+              : null,
+          "phone": phoneController.text.isNotEmpty
+              ? phoneController.text.trim()
+              : null,
         }),
       );
     } else {
-      final addUri = Uri.parse("${baseURL.Urls().baseURL}user/contact-info/add?userId=$userId");
+      final addUri = Uri.parse(
+          "${baseURL.Urls().baseURL}user/contact-info/add?userId=$userId");
       await http.post(
         addUri,
         headers: {
@@ -683,15 +750,20 @@ class _UpdateProfileState extends State<UpdateProfile> {
         },
         body: jsonEncode({
           "userId": userId,
-          "email": emailController.text.isNotEmpty ? emailController.text.trim() : null,
-          "phone": phoneController.text.isNotEmpty ? phoneController.text.trim() : null,
+          "email": emailController.text.isNotEmpty
+              ? emailController.text.trim()
+              : null,
+          "phone": phoneController.text.isNotEmpty
+              ? phoneController.text.trim()
+              : null,
         }),
       );
     }
   }
 
   Future<void> _updateLocationInfo(String userId, String token) async {
-    final locationUri = Uri.parse("${baseURL.Urls().baseURL}userLocation/findByUserId/$userId");
+    final locationUri = Uri.parse(
+        "${baseURL.Urls().baseURL}userLocation/findByUserId/$userId");
     final response = await http.get(
       locationUri,
       headers: {
@@ -703,7 +775,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       String locationInfoId = data["id"];
-      final updateUri = Uri.parse("${baseURL.Urls().baseURL}userLocation/update/$locationInfoId?userId=$userId");
+      final updateUri = Uri.parse(
+          "${baseURL.Urls().baseURL}userLocation/update/$locationInfoId?userId=$userId");
       await http.put(
         updateUri,
         headers: {
@@ -748,7 +821,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
       final centerAdminResponseData = jsonDecode(centerAdminResponse.body);
       final centerAdminId = centerAdminResponseData["id"];
       await http.put(
-        Uri.parse("${baseURL.Urls().baseURL}admin/update/$centerAdminId/$userId"),
+        Uri.parse(
+            "${baseURL.Urls().baseURL}admin/update/$centerAdminId/$userId"),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
@@ -762,6 +836,7 @@ class _UpdateProfileState extends State<UpdateProfile> {
   }
 
   void _showSnackBar(String message, Color color) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -779,14 +854,17 @@ class _UpdateProfileState extends State<UpdateProfile> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: Column(
+        content: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.blue)),
-            const SizedBox(height: 16),
-            Text("আপডেট হচ্ছে...", style: TextStyle(fontSize: 16, color: Colors.blue)),
-            const SizedBox(height: 8),
-            Text("দয়া করে অপেক্ষা করুন", style: TextStyle(fontSize: 12, color: Colors.grey)),
+            CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue)),
+            SizedBox(height: 16),
+            Text("আপডেট হচ্ছে...",
+                style: TextStyle(fontSize: 16, color: Colors.blue)),
+            SizedBox(height: 8),
+            Text("দয়া করে অপেক্ষা করুন",
+                style: TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
       ),
@@ -802,7 +880,10 @@ class _UpdateProfileState extends State<UpdateProfile> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          padding: EdgeInsets.symmetric(
+            horizontal: _isMobile ? 18 : 24,
+            vertical: _isMobile ? 12 : 14,
+          ),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [Colors.blue, Colors.blueAccent],
@@ -823,24 +904,26 @@ class _UpdateProfileState extends State<UpdateProfile> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(_isMobile ? 6 : 8),
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.admin_panel_settings, color: Colors.blue, size: 20),
+                child: Icon(Icons.admin_panel_settings,
+                    color: Colors.blue, size: _isMobile ? 18 : 20),
               ),
-              const SizedBox(width: 12),
-              const Text(
+              SizedBox(width: _isMobile ? 8 : 12),
+              Text(
                 'অ্যাডমিন প্রোফাইল আপডেট',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: _isMobile ? 14 : 16,
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.arrow_forward, color: Colors.white, size: 18),
+              Icon(Icons.arrow_forward,
+                  color: Colors.white, size: _isMobile ? 16 : 18),
             ],
           ),
         ),
@@ -855,7 +938,7 @@ class _UpdateProfileState extends State<UpdateProfile> {
       bottom: showForm ? 0 : -MediaQuery.of(context).size.height,
       left: 0,
       right: 0,
-      height: MediaQuery.of(context).size.height * 0.85,
+      height: _formHeight,
       child: IgnorePointer(
         ignoring: !showForm,
         child: TweenAnimationBuilder(
@@ -876,7 +959,10 @@ class _UpdateProfileState extends State<UpdateProfile> {
                 topRight: Radius.circular(30),
               ),
               boxShadow: [
-                BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, -5)),
+                BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 20,
+                    offset: Offset(0, -5)),
               ],
             ),
             child: Column(
@@ -911,14 +997,14 @@ class _UpdateProfileState extends State<UpdateProfile> {
 
   Widget _buildFormHeader() {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
+      padding: EdgeInsets.all(_isMobile ? 16 : 20),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
           colors: [Colors.blue, Colors.blueAccent],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: const BorderRadius.only(
+        borderRadius: BorderRadius.only(
           topLeft: Radius.circular(30),
           topRight: Radius.circular(30),
         ),
@@ -926,26 +1012,49 @@ class _UpdateProfileState extends State<UpdateProfile> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                child: const Icon(Icons.admin_panel_settings, color: Colors.blue, size: 24),
-              ),
-              const SizedBox(width: 12),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('অ্যাডমিন প্রোফাইল আপডেট', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                  Text('আপনার তথ্য হালনাগাদ করুন', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                ],
-              ),
-            ],
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(_isMobile ? 8 : 10),
+                  decoration: const BoxDecoration(
+                      color: Colors.white, shape: BoxShape.circle),
+                  child: Icon(Icons.admin_panel_settings,
+                      color: Colors.blue, size: _isMobile ? 20 : 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'অ্যাডমিন প্রোফাইল আপডেট',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: _isMobile ? 16 : 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        'আপনার তথ্য হালনাগাদ করুন',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: _isMobile ? 11 : 12,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.close, color: Colors.white),
             onPressed: () => setState(() => showForm = false),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),
@@ -954,10 +1063,11 @@ class _UpdateProfileState extends State<UpdateProfile> {
 
   Widget _buildFormContent() {
     return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        left: 20,
-        right: 20,
+        left: _horizontalPadding,
+        right: _horizontalPadding,
         top: 20,
       ),
       child: Column(
@@ -966,7 +1076,7 @@ class _UpdateProfileState extends State<UpdateProfile> {
           const SizedBox(height: 24),
           _buildTextField(
             controller: oldNameController,
-            label: "পুরনো নাম",
+            label: "পুরনো ইউজার নেম",
             icon: Icons.person_outline,
             readOnly: true,
             focusNode: _oldNameFocus,
@@ -974,10 +1084,20 @@ class _UpdateProfileState extends State<UpdateProfile> {
           const SizedBox(height: 16),
           _buildTextField(
             controller: nameController,
-            label: "নতুন নাম",
+            label: "নতুন ইউজার নেম",
             icon: Icons.person,
-            hint: "আপনার নতুন নাম লিখুন",
+            hint: "আপনার নতুন ইউজার নেম লিখুন",
             focusNode: _nameFocus,
+            nextFocus: _fullNameFocus,
+          ),
+          const SizedBox(height: 16),
+          // ✅ NEW: Full Name field
+          _buildTextField(
+            controller: fullNameController,
+            label: "পূর্ণ নাম",
+            icon: Icons.badge_outlined,
+            hint: "আপনার পূর্ণ নাম লিখুন",
+            focusNode: _fullNameFocus,
             nextFocus: _oldPasswordFocus,
           ),
           const SizedBox(height: 16),
@@ -985,7 +1105,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
             controller: oldPasswordController,
             label: "পুরনো পাসওয়ার্ড",
             isVisible: _showOldPassword,
-            onToggle: () => setState(() => _showOldPassword = !_showOldPassword),
+            onToggle: () =>
+                setState(() => _showOldPassword = !_showOldPassword),
             focusNode: _oldPasswordFocus,
             nextFocus: _newPasswordFocus,
           ),
@@ -1021,7 +1142,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
             label: "লোকেশন",
             icon: Icons.location_on_outlined,
             readOnly: true,
-            onTap: () => _showSnackBar("মানচিত্রে ট্যাপ করে লোকেশন সিলেক্ট করুন", Colors.blue),
+            onTap: () => _showSnackBar(
+                "মানচিত্রে ট্যাপ করে লোকেশন সিলেক্ট করুন", Colors.blue),
           ),
           const SizedBox(height: 20),
           _buildSpecialistSection(),
@@ -1034,17 +1156,22 @@ class _UpdateProfileState extends State<UpdateProfile> {
   }
 
   Widget _buildProfileImage() {
+    final size = _isMobile ? 90.0 : 110.0;
     return Center(
       child: GestureDetector(
         onTap: pickImage,
         child: Container(
-          width: 110,
-          height: 110,
+          width: size,
+          height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: const LinearGradient(colors: [Colors.blue, Colors.blueAccent]),
+            gradient: const LinearGradient(
+                colors: [Colors.blue, Colors.blueAccent]),
             boxShadow: [
-              BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5)),
+              BoxShadow(
+                  color: Colors.blue.withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5)),
             ],
           ),
           child: ClipOval(
@@ -1058,7 +1185,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
                 else
                   Container(
                     color: Colors.white,
-                    child: const Icon(Icons.admin_panel_settings, size: 50, color: Colors.blue),
+                    child: Icon(Icons.admin_panel_settings,
+                        size: _isMobile ? 40 : 50, color: Colors.blue),
                   ),
                 Positioned(
                   bottom: 0,
@@ -1066,14 +1194,16 @@ class _UpdateProfileState extends State<UpdateProfile> {
                   left: 0,
                   child: Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [Colors.blue, Colors.blueAccent]),
-                      borderRadius: const BorderRadius.only(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                          colors: [Colors.blue, Colors.blueAccent]),
+                      borderRadius: BorderRadius.only(
                         bottomLeft: Radius.circular(55),
                         bottomRight: Radius.circular(55),
                       ),
                     ),
-                    child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
+                    child: const Icon(Icons.camera_alt,
+                        color: Colors.white, size: 18),
                   ),
                 ),
               ],
@@ -1107,7 +1237,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
         keyboardType: keyboardType,
         focusNode: focusNode,
         onTap: onTap,
-        textInputAction: nextFocus != null ? TextInputAction.next : TextInputAction.done,
+        textInputAction:
+            nextFocus != null ? TextInputAction.next : TextInputAction.done,
         onEditingComplete: () {
           if (nextFocus != null) {
             FocusScope.of(context).requestFocus(nextFocus);
@@ -1115,19 +1246,25 @@ class _UpdateProfileState extends State<UpdateProfile> {
             FocusScope.of(context).unfocus();
           }
         },
+        style: TextStyle(fontSize: _isMobile ? 14 : 16),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Colors.blue),
+          labelStyle: TextStyle(
+              color: Colors.blue, fontSize: _isMobile ? 13 : 14),
           hintText: hint,
-          hintStyle: TextStyle(color: Colors.grey[400]),
-          prefixIcon: Icon(icon, color: Colors.blue),
+          hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+          prefixIcon:
+              Icon(icon, color: Colors.blue, size: _isMobile ? 20 : 24),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
           ),
           filled: true,
           fillColor: Colors.transparent,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: _isMobile ? 16 : 20,
+            vertical: _isMobile ? 14 : 16,
+          ),
         ),
       ),
     );
@@ -1151,7 +1288,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
         controller: controller,
         obscureText: !isVisible,
         focusNode: focusNode,
-        textInputAction: nextFocus != null ? TextInputAction.next : TextInputAction.done,
+        textInputAction:
+            nextFocus != null ? TextInputAction.next : TextInputAction.done,
         onEditingComplete: () {
           if (nextFocus != null) {
             FocusScope.of(context).requestFocus(nextFocus);
@@ -1159,12 +1297,18 @@ class _UpdateProfileState extends State<UpdateProfile> {
             FocusScope.of(context).unfocus();
           }
         },
+        style: TextStyle(fontSize: _isMobile ? 14 : 16),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Colors.blue),
-          prefixIcon: const Icon(Icons.lock_outline, color: Colors.blue),
+          labelStyle: TextStyle(
+              color: Colors.blue, fontSize: _isMobile ? 13 : 14),
+          prefixIcon: Icon(Icons.lock_outline,
+              color: Colors.blue, size: _isMobile ? 20 : 24),
           suffixIcon: IconButton(
-            icon: Icon(isVisible ? Icons.visibility : Icons.visibility_off, color: Colors.blue),
+            icon: Icon(
+                isVisible ? Icons.visibility : Icons.visibility_off,
+                color: Colors.blue,
+                size: _isMobile ? 20 : 24),
             onPressed: onToggle,
           ),
           border: OutlineInputBorder(
@@ -1173,7 +1317,10 @@ class _UpdateProfileState extends State<UpdateProfile> {
           ),
           filled: true,
           fillColor: Colors.transparent,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: _isMobile ? 16 : 20,
+            vertical: _isMobile ? 14 : 16,
+          ),
         ),
       ),
     );
@@ -1185,13 +1332,17 @@ class _UpdateProfileState extends State<UpdateProfile> {
       children: [
         const Text(
           "স্পেশালিস্ট এলাকা",
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.blue),
+          style: TextStyle(
+              fontSize: 14, fontWeight: FontWeight.w500, color: Colors.blue),
         ),
         const SizedBox(height: 8),
         GestureDetector(
           onTap: showDistrictDialog,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: EdgeInsets.symmetric(
+              horizontal: _isMobile ? 16 : 20,
+              vertical: _isMobile ? 14 : 16,
+            ),
             decoration: BoxDecoration(
               color: Colors.grey[50],
               borderRadius: BorderRadius.circular(16),
@@ -1199,7 +1350,7 @@ class _UpdateProfileState extends State<UpdateProfile> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.gavel, color: Colors.blue),
+                const Icon(Icons.gavel, color: Colors.blue, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -1207,8 +1358,12 @@ class _UpdateProfileState extends State<UpdateProfile> {
                         ? "স্পেশালিস্ট সিলেক্ট করুন"
                         : "${selectedDistricts.length} টি স্পেশালিস্ট সিলেক্ট করা হয়েছে",
                     style: TextStyle(
-                      color: selectedDistricts.isEmpty ? Colors.grey[600] : Colors.black87,
+                      color: selectedDistricts.isEmpty
+                          ? Colors.grey[600]
+                          : Colors.black87,
+                      fontSize: _isMobile ? 13 : 14,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const Icon(Icons.arrow_drop_down, color: Colors.blue),
@@ -1224,7 +1379,7 @@ class _UpdateProfileState extends State<UpdateProfile> {
             children: selectedDistricts.map((district) {
               return Chip(
                 label: Text(district!),
-                onDeleted: () => _confirmDeleteDistrict(district!),
+                onDeleted: () => _confirmDeleteDistrict(district),
                 backgroundColor: Colors.blue.withOpacity(0.1),
                 deleteIconColor: Colors.blue,
                 labelStyle: const TextStyle(color: Colors.blue),
@@ -1239,22 +1394,34 @@ class _UpdateProfileState extends State<UpdateProfile> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: isUpdating ? null : () async {
-          FocusScope.of(context).unfocus();
-          _showLoadingDialog();
-          await _submitForm();
-          if (mounted) Navigator.pop(context);
-        },
+        onPressed: isUpdating
+            ? null
+            : () async {
+                FocusScope.of(context).unfocus();
+                _showLoadingDialog();
+                await _submitForm();
+                if (mounted) Navigator.pop(context);
+              },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blue,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          padding: EdgeInsets.symmetric(vertical: _isMobile ? 14 : 16),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16)),
           elevation: 5,
         ),
         child: isUpdating
-            ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-            : const Text('আপডেট করুন', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ? const SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white))
+            : Text(
+                'আপডেট করুন',
+                style: TextStyle(
+                    fontSize: _isMobile ? 15 : 16,
+                    fontWeight: FontWeight.bold),
+              ),
       ),
     );
   }
@@ -1264,14 +1431,16 @@ class _UpdateProfileState extends State<UpdateProfile> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        title: const Text("অ্যাডমিন প্রোফাইল আপডেট"),
+        title: Text(
+          "অ্যাডমিন প্রোফাইল আপডেট",
+          style: TextStyle(fontSize: _isMobile ? 16 : 20),
+        ),
         backgroundColor: Colors.blue,
         elevation: 0,
         centerTitle: true,
       ),
       body: Stack(
         children: [
-          // Map
           LayoutBuilder(
             builder: (context, constraints) {
               return SizedBox(
@@ -1290,7 +1459,8 @@ class _UpdateProfileState extends State<UpdateProfile> {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate:
+                          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                       subdomains: const ['a', 'b', 'c'],
                     ),
                     MarkerLayer(markers: _markers),
@@ -1300,14 +1470,17 @@ class _UpdateProfileState extends State<UpdateProfile> {
             },
           ),
 
-          // Gradient Overlay
           IgnorePointer(
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withOpacity(0.3), Colors.black.withOpacity(0.6)],
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.3),
+                    Colors.black.withOpacity(0.6),
+                  ],
                 ),
               ),
             ),
@@ -1316,34 +1489,41 @@ class _UpdateProfileState extends State<UpdateProfile> {
           // Search Bar
           Positioned(
             top: MediaQuery.of(context).padding.top + 10,
-            left: 16,
-            right: 16,
+            left: _isMobile ? 12 : 16,
+            right: _isMobile ? 12 : 16,
             child: Card(
               elevation: 8,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30)),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Row(
                   children: [
-                    const Icon(Icons.search, color: Colors.blue),
+                    const Icon(Icons.search, color: Colors.blue, size: 20),
                     Expanded(
                       child: TextField(
                         controller: searchController,
+                        style: TextStyle(fontSize: _isMobile ? 14 : 16),
                         decoration: const InputDecoration(
                           hintText: "লোকেশন খুঁজুন...",
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 14),
                         ),
                         onSubmitted: (value) => searchPlace(),
                       ),
                     ),
                     Container(
                       margin: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(30)),
+                      decoration: BoxDecoration(
+                          color: Colors.blue,
+                          borderRadius: BorderRadius.circular(30)),
                       child: IconButton(
                         icon: const Icon(Icons.search, color: Colors.white),
                         onPressed: searchPlace,
-                        iconSize: 20,
+                        iconSize: 18,
+                        padding: const EdgeInsets.all(8),
+                        constraints: const BoxConstraints(),
                       ),
                     ),
                   ],
@@ -1355,7 +1535,7 @@ class _UpdateProfileState extends State<UpdateProfile> {
           // My Location Button
           Positioned(
             bottom: 20,
-            right: 16,
+            right: _isMobile ? 12 : 16,
             child: FloatingActionButton(
               mini: true,
               backgroundColor: Colors.white,

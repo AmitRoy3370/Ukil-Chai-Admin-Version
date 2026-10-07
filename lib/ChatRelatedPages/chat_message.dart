@@ -1,9 +1,9 @@
 class ChatMessage {
-   String id;
-   String sender;
-   String receiver;
-   String content;
-   DateTime timeStamp;
+  String id;
+  String sender;
+  String receiver;
+  String content;
+  DateTime timeStamp;
 
   ChatMessage({
     required this.id,
