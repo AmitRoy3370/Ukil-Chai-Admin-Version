@@ -1,9 +1,9 @@
 // lib/RJSC/services/rjsc_registration_process_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:advocatechai/Auth/AuthService.dart';
+import '../../Auth/AuthService.dart';
 import '../models/rjsc_registration_process_model.dart';
-import 'package:advocatechai/Utils/BaseURL.dart' as BASE_URL;
+import '../../Utils/BaseURL.dart' as BASE_URL;
 
 class RjscRegistrationProcessService {
   static String _baseUrl =
@@ -76,7 +76,8 @@ class RjscRegistrationProcessService {
 
   // ==================== FIND BY ADVOCATE ID ====================
   static Future<Map<String, dynamic>> findByAdvocateId(
-      String advocateId) async {
+    String advocateId,
+  ) async {
     return _getRequest('$_baseUrl/search/advocateId?advocateId=$advocateId');
   }
 
@@ -92,7 +93,8 @@ class RjscRegistrationProcessService {
 
   // ==================== FIND BY RJSC IDs (BULK) ====================
   static Future<Map<String, dynamic>> findByRjscIdIn(
-      List<String> rjscIds) async {
+    List<String> rjscIds,
+  ) async {
     final query = rjscIds.map((id) => 'rjscIds=$id').join('&');
     return _getRequest('$_baseUrl/search/rjscIds?$query');
   }
@@ -144,20 +146,26 @@ class RjscRegistrationProcessService {
 
   // ==================== PARSERS ====================
   static RjscRegistrationProcessResponseDTO? parseSingle(
-      Map<String, dynamic> json) {
+    Map<String, dynamic> json,
+  ) {
     if (json['status'] == 'success' && json['data'] != null) {
       return RjscRegistrationProcessResponseDTO.fromJson(
-          Map<String, dynamic>.from(json['data']));
+        Map<String, dynamic>.from(json['data']),
+      );
     }
     return null;
   }
 
   static List<RjscRegistrationProcessResponseDTO> parseList(
-      Map<String, dynamic> json) {
+    Map<String, dynamic> json,
+  ) {
     if (json['status'] == 'success' && json['data'] != null) {
       return (json['data'] as List)
-          .map((e) => RjscRegistrationProcessResponseDTO.fromJson(
-              Map<String, dynamic>.from(e)))
+          .map(
+            (e) => RjscRegistrationProcessResponseDTO.fromJson(
+              Map<String, dynamic>.from(e),
+            ),
+          )
           .toList();
     }
     return [];

@@ -38,6 +38,10 @@ class _PostCardHomePageState extends State<PostCardHomePage> {
     });
   }
 
+  // 👇 ADDED: Helper getter to check if title exists and is not empty
+  bool get _hasTitle =>
+      widget.post.postTitle != null && widget.post.postTitle!.trim().isNotEmpty;
+
   String _formatDate(String? dateString) {
     if (dateString == null) return '';
     try {
@@ -66,10 +70,8 @@ class _PostCardHomePageState extends State<PostCardHomePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PostAttachmentView(
-          attachmentId: attachmentId,
-          jwtToken: _token!,
-        ),
+        builder: (context) =>
+            PostAttachmentView(attachmentId: attachmentId, jwtToken: _token!),
       ),
     );
   }
@@ -93,7 +95,7 @@ class _PostCardHomePageState extends State<PostCardHomePage> {
   Future<void> _navigateToAdvocateProfile(String advocateId) async {
     try {
       final token = await AuthService.getToken();
-      
+
       final response = await http.get(
         Uri.parse("${BASE_URL.Urls().baseURL}advocate/$advocateId"),
         headers: {
@@ -104,13 +106,16 @@ class _PostCardHomePageState extends State<PostCardHomePage> {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
-        final AdvocateDetailsModel advocate = AdvocateDetailsModel.fromJson(responseData);
-        
+        final AdvocateDetailsModel advocate = AdvocateDetailsModel.fromJson(
+          responseData,
+        );
+
         if (mounted) {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AdvocateDetails(advocateDetailsModel: advocate),
+              builder: (context) =>
+                  AdvocateDetails(advocateDetailsModel: advocate),
             ),
           );
         }
@@ -172,9 +177,12 @@ class _PostCardHomePageState extends State<PostCardHomePage> {
                         children: [
                           // ========== অ্যাডভোকেটের নাম (ক্লিকযোগ্য) ==========
                           GestureDetector(
-                            onTap: () => _navigateToAdvocateProfile(widget.post.advocateId),
+                            onTap: () => _navigateToAdvocateProfile(
+                              widget.post.advocateId,
+                            ),
                             child: Text(
-                              widget.post.advocateFullName ?? widget.post.advocateName,
+                              widget.post.advocateFullName ??
+                                  widget.post.advocateName,
                               style: GoogleFonts.inter(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -206,7 +214,10 @@ class _PostCardHomePageState extends State<PostCardHomePage> {
                         ),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.green.shade400, Colors.green.shade600],
+                            colors: [
+                              Colors.green.shade400,
+                              Colors.green.shade600,
+                            ],
                           ),
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -234,11 +245,26 @@ class _PostCardHomePageState extends State<PostCardHomePage> {
                   ],
                 ),
 
+                // ========== 👇 ADDED: POST TITLE (Conditional) ==========
+                if (_hasTitle) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    widget.post.postTitle!,
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey[900],
+                      height: 1.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+
                 const SizedBox(height: 8),
 
                 // ========== পোস্ট কন্টেন্ট ==========
-                if (widget.post.postContent.isNotEmpty)
-                  _buildPostContent(),
+                if (widget.post.postContent.isNotEmpty) _buildPostContent(),
 
                 const SizedBox(height: 8),
 
@@ -290,7 +316,9 @@ class _PostCardHomePageState extends State<PostCardHomePage> {
               color: Colors.grey[700],
             ),
             maxLines: _isExpanded ? null : 2,
-            overflow: _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+            overflow: _isExpanded
+                ? TextOverflow.visible
+                : TextOverflow.ellipsis,
             softWrap: true,
           ),
           const SizedBox(height: 4),
@@ -371,11 +399,7 @@ class _PostCardHomePageState extends State<PostCardHomePage> {
         const Spacer(),
         IconButton(
           onPressed: _navigateToSinglePost,
-          icon: Icon(
-            Icons.open_in_new,
-            size: 16,
-            color: Colors.green.shade600,
-          ),
+          icon: Icon(Icons.open_in_new, size: 16, color: Colors.green.shade600),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
           tooltip: 'View Details',

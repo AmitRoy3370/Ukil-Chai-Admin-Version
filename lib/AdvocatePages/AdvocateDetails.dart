@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as NavigatorPageRoute;
 import 'package:http/http.dart' as http;
 import 'dart:html' as html;
-
+import '../CaseRelatedPages/AttachmentViewer.dart'; // 👈 Import the viewer
 import '../AdvocatePages/AdvocateDetailsModel.dart';
 import '../Auth/AuthService.dart';
 import '../Utils/BaseURL.dart' as baseURL;
@@ -18,6 +18,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 import '../CaseRelatedPages/AddCaseRequestPage.dart';
@@ -28,6 +29,8 @@ import '../PostRelatedPages/PostService.dart';
 import '../PostRelatedPages/post_card.dart';
 import '../PostRelatedPages/post_card_home_page.dart';
 import '../Utils/BaseURL.dart' as BASE_URL;
+import 'advocate_additional_info_model.dart';
+import 'advocate_working_experience_model.dart';
 
 class AdvocateDetails extends StatefulWidget {
   final AdvocateDetailsModel advocateDetailsModel;
@@ -129,8 +132,9 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
         name: model.name,
         fullName: model.fullName,
         profileImageId: model.profileImageId,
-        advocateSpeciality:
-            model.advocateSpeciality.map((e) => e.toString()).toList(),
+        advocateSpeciality: model.advocateSpeciality
+            .map((e) => e.toString())
+            .toList(),
         locationName: model.locationName,
         district: model.district,
         experience: model.experience,
@@ -159,11 +163,10 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
         content: Text(msg),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
-        backgroundColor:
-            positive ? Colors.green.shade600 : Colors.grey.shade700,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        backgroundColor: positive
+            ? Colors.green.shade600
+            : Colors.grey.shade700,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -409,18 +412,52 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
                   _buildInfoSection(
                     icon: Icons.work_history,
                     title: "Working Experience",
-                    items: (widget.advocateDetailsModel.workingExperiences)
-                        .cast<String>(),
+                    items: widget.advocateDetailsModel.workingExperiences ?? const <String>[],
                     color: Colors.blue,
                   ),
-
                   const SizedBox(height: 16),
+
+                  // ✅ Safe check for Working Experience
+                  if (widget.advocateDetailsModel.workingExperience != null) ...[
+                    _buildWorkingExperienceInfoSection(
+                      icon: Icons.work_history,
+                      title: "Working Experience",
+                      advocateWorkingExperience: widget.advocateDetailsModel.workingExperience!,
+                      color: Colors.blue,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // ✅ Safe check for Additional Info
+                  if (widget.advocateDetailsModel.additionalInfo != null) ...[
+                    _buildAdditionalInfoSection(
+                      icon: Icons.info_outline,
+                      title: "Additional information",
+                      advocateAdditionalInfo: widget.advocateDetailsModel.additionalInfo!,
+                      color: Colors.purple,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // ✅ Safe check for Attachments
+                  if (widget.advocateDetailsModel.advocateDocuments?.attachments != null &&
+                      widget.advocateDetailsModel.advocateDocuments!.attachments!.isNotEmpty) ...[
+                    _buildInfoSection(
+                      icon: Icons.attach_file,
+                      title: "Attachments",
+                      items: widget.advocateDetailsModel.advocateDocuments!.attachments!
+                          .map((e) => e.toString())
+                          .toList(),
+                      color: Colors.blue,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
                   _buildInfoSection(
                     icon: Icons.location_on,
                     title: "Location",
                     items: [
-                      widget.advocateDetailsModel.locationName ?? "Not available"
+                      widget.advocateDetailsModel.locationName ?? "Not available",
                     ],
                     color: Colors.green,
                   ),
@@ -431,7 +468,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
                     icon: Icons.place,
                     title: "District",
                     items: [
-                      widget.advocateDetailsModel.district ?? "Not available"
+                      widget.advocateDetailsModel.district ?? "Not available",
                     ],
                     color: Colors.purple,
                   ),
@@ -441,8 +478,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
                   _buildInfoSection(
                     icon: Icons.star,
                     title: "Specialities",
-                    items: (widget.advocateDetailsModel.advocateSpeciality)
-                        .cast<String>(),
+                    items: widget.advocateDetailsModel.advocateSpeciality ?? const <String>[],
                     color: Colors.orange,
                   ),
 
@@ -451,8 +487,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
                   _buildInfoSection(
                     icon: Icons.school,
                     title: "Degrees",
-                    items: (widget.advocateDetailsModel.degrees)
-                        .cast<String>(),
+                    items: widget.advocateDetailsModel.degrees ?? const <String>[],
                     color: Colors.teal,
                   ),
                 ],
@@ -480,6 +515,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
       ),
     );
   }
+
 
   // ========== অ্যাপবার ==========
   PreferredSizeWidget _buildAppBar() {
@@ -519,10 +555,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Colors.blue.shade600,
-                Colors.purple.shade600,
-              ],
+              colors: [Colors.blue.shade600, Colors.purple.shade600],
             ),
             borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(30),
@@ -540,10 +573,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
                     return Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white,
-                          width: 4,
-                        ),
+                        border: Border.all(color: Colors.white, width: 4),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.2),
@@ -815,30 +845,317 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
                 fontStyle: FontStyle.italic,
               ),
             )
-          else
-            ...items.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.circle,
-                        color: color.withOpacity(0.4),
-                        size: 6,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          item,
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            color: Colors.grey.shade700,
-                            height: 1.4,
+          else if (title == 'Attachments') ...[
+            _buildSectionTitle("Uploaded Documents"),
+            _buildCard([
+              for (var doc in items)
+                InkWell(
+                  onTap: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    final token = prefs.getString("jwt_token");
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Scaffold(
+                          backgroundColor: Colors.black,
+                          appBar: AppBar(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            title: const Text("Document Viewer"),
+                          ),
+                          // 👈 Using the CaseAttachmentView widget here
+                          body: CaseAttachmentView(
+                            attachmentId: doc,
+                            jwtToken:
+                                token ??
+                                '', // Passing empty token since this is before login
                           ),
                         ),
                       ),
-                    ],
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.attach_file,
+                          color: Colors.blue,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            doc,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.blue,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          size: 14,
+                          color: Colors.grey,
+                        ),
+                      ],
+                    ),
                   ),
-                )),
+                ),
+            ]),
+          ] else
+            ...items.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Icon(Icons.circle, color: color.withOpacity(0.4), size: 6),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        item,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: Colors.grey.shade700,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, left: 4),
+      child: Text(
+        title,
+        style: GoogleFonts.poppins(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.grey[800],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCard(List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _buildWorkingExperienceInfoSection({
+    required IconData icon,
+    required String title,
+    required AdvocateWorkingExperience advocateWorkingExperience,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (advocateWorkingExperience == null)
+            Text(
+              "No data available",
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: Colors.grey.shade500,
+                fontStyle: FontStyle.italic,
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Bar Association :- ${advocateWorkingExperience.barAssociation ?? 'N/A'}',
+                    style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Bar Controll enrollment :- ${advocateWorkingExperience.barControllEnrolment ?? 'N/A'}',
+                    style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Enrollment date :- ${advocateWorkingExperience.enrollmentDate ?? 'N/A'}',
+                    style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Practicing court :- ${advocateWorkingExperience.practicingCoat ?? 'N/A'}',
+                    style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Primary Practice :- ${advocateWorkingExperience.primaryPractice ?? 'N/A'}',
+                    style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Legal Practice :- ${advocateWorkingExperience.yearOfLegalPractice ?? 'N/A'}',
+                    style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Current chember :- ${advocateWorkingExperience.currentChemberName ?? 'N/A'}',
+                    style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Professional experience :- ${advocateWorkingExperience.professionalExperience ?? 'N/A'}',
+                    style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Additional Info section
+  Widget _buildAdditionalInfoSection({
+    required IconData icon,
+    required String title,
+    required AdvocateAdditionalInfo advocateAdditionalInfo,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (advocateAdditionalInfo == null)
+            Text(
+              "No data available",
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: Colors.grey.shade500,
+                fontStyle: FontStyle.italic,
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Parmanent Adress :- ${advocateAdditionalInfo.parmanentAdress ?? 'N/A'}',
+                    style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'City :- ${advocateAdditionalInfo.cityOfUpozila ?? 'N/A'}',
+                    style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'nid :- ${advocateAdditionalInfo.nidNumber ?? 'N/A'}',
+                    style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'DOB :- ${advocateAdditionalInfo.dateOfBirth ?? 'N/A'}',
+                    style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Whatsapp :- ${advocateAdditionalInfo.whatsAppNumber ?? 'N/A'}',
+                    style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -882,8 +1199,10 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
                 ],
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade200,
                   borderRadius: BorderRadius.circular(12),
@@ -963,10 +1282,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Colors.amber.shade50,
-              Colors.orange.shade50,
-            ],
+            colors: [Colors.amber.shade50, Colors.orange.shade50],
           ),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
@@ -982,11 +1298,17 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
                 if (index < averageRating.floor()) {
                   return const Icon(Icons.star, color: Colors.amber, size: 28);
                 } else if (index < averageRating) {
-                  return const Icon(Icons.star_half,
-                      color: Colors.amber, size: 28);
+                  return const Icon(
+                    Icons.star_half,
+                    color: Colors.amber,
+                    size: 28,
+                  );
                 } else {
-                  return const Icon(Icons.star_border,
-                      color: Colors.amber, size: 28);
+                  return const Icon(
+                    Icons.star_border,
+                    color: Colors.amber,
+                    size: 28,
+                  );
                 }
               }),
             ),
@@ -1033,8 +1355,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
                 shadowColor: Colors.green.shade300.withOpacity(0.4),
               ),
               onPressed: () async {
-                SharedPreferences prefs =
-                    await SharedPreferences.getInstance();
+                SharedPreferences prefs = await SharedPreferences.getInstance();
                 final userId = prefs.getString('userId') ?? '';
 
                 Navigator.push(
@@ -1042,8 +1363,7 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
                   NavigatorPageRoute.MaterialPageRoute(
                     builder: (context) => AddCaseRequestPage(
                       userId: userId,
-                      specialRequestedAdvocate:
-                          widget.advocateDetailsModel.id,
+                      specialRequestedAdvocate: widget.advocateDetailsModel.id,
                     ),
                   ),
                 );
@@ -1143,7 +1463,6 @@ class AdvocateDetailsState extends State<AdvocateDetails> {
             ),
           ),
           */
-
           const SizedBox(height: 12),
 
           // চ্যাট বাটন (currently commented out)

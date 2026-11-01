@@ -35,6 +35,7 @@ class _AdvocateHomePageContentState extends State<_AdvocateHomePageContent> {
   int _selectedIndex = 0;
   String? userId;
   String? userName;
+  String? fullName;
   bool _isLoading = true;
   late PageController _pageController = PageController();
 
@@ -71,6 +72,7 @@ class _AdvocateHomePageContentState extends State<_AdvocateHomePageContent> {
           setState(() {
             userId = data['id'] ?? id;
             userName = data['name'] ?? 'User';
+            fullName = data['fullName'];
             _isLoading = false;
           });
         } else {
@@ -170,6 +172,7 @@ class _AdvocateHomePageContentState extends State<_AdvocateHomePageContent> {
                     userId: userId!,
                     advocateId: null,
                     userName: userName ?? 'User',
+                    fullName: fullName
                   )
                 else
                   const Center(

@@ -1,7 +1,7 @@
 // CreateGroupScreen.dart
 
 import 'package:flutter/material.dart';
-import 'package:advocatechai/GroupChat/GroupChatServices.dart';
+import '../GroupChat/GroupChatServices.dart';
 
 class CreateGroupScreen extends StatefulWidget {
   final String currentUserId;
@@ -35,13 +35,12 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         elevation: 0,
         actions: [
           TextButton(
-            onPressed: _selectedMembers.isNotEmpty && _groupNameController.text.isNotEmpty
+            onPressed:
+                _selectedMembers.isNotEmpty &&
+                    _groupNameController.text.isNotEmpty
                 ? _createGroup
                 : null,
-            child: const Text(
-              'Create',
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text('Create', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -80,16 +79,20 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
-                children: _selectedMembers.map((member) => Chip(
-                  label: Text(member),
-                  onDeleted: () {
-                    setState(() {
-                      _selectedMembers.remove(member);
-                    });
-                  },
-                  deleteIcon: const Icon(Icons.close, size: 16),
-                  backgroundColor: Colors.green[50],
-                )).toList(),
+                children: _selectedMembers
+                    .map(
+                      (member) => Chip(
+                        label: Text(member),
+                        onDeleted: () {
+                          setState(() {
+                            _selectedMembers.remove(member);
+                          });
+                        },
+                        deleteIcon: const Icon(Icons.close, size: 16),
+                        backgroundColor: Colors.green[50],
+                      ),
+                    )
+                    .toList(),
               ),
               const SizedBox(height: 16),
             ],
@@ -110,7 +113,9 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                         final isSelected = _selectedMembers.contains(user);
                         return ListTile(
                           leading: CircleAvatar(
-                            backgroundColor: isSelected ? Colors.green[700] : Colors.grey[300],
+                            backgroundColor: isSelected
+                                ? Colors.green[700]
+                                : Colors.grey[300],
                             child: Text(
                               user.substring(0, 1).toUpperCase(),
                               style: TextStyle(
@@ -120,7 +125,10 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                           ),
                           title: Text(user),
                           trailing: isSelected
-                              ? Icon(Icons.check_circle, color: Colors.green[700])
+                              ? Icon(
+                                  Icons.check_circle,
+                                  color: Colors.green[700],
+                                )
                               : null,
                           onTap: () {
                             setState(() {

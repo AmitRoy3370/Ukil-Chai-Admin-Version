@@ -1,10 +1,10 @@
 // GroupChatHome.dart
 
 import 'package:flutter/material.dart';
-import 'package:advocatechai/GroupChat/GroupChatModels.dart';
-import 'package:advocatechai/GroupChat/GroupChatServices.dart';
-import 'package:advocatechai/GroupChat/GroupChatScreen.dart';
-import 'package:advocatechai/GroupChat/CreateGroupScreen.dart';
+import '../GroupChat/GroupChatModels.dart';
+import '../GroupChat/GroupChatServices.dart';
+import '../GroupChat/GroupChatScreen.dart';
+import '../GroupChat/CreateGroupScreen.dart';
 
 class GroupChatHome extends StatefulWidget {
   final String currentUserId;
@@ -63,10 +63,7 @@ class _GroupChatHomeState extends State<GroupChatHome> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadGroups,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadGroups),
         ],
       ),
       body: Column(
@@ -76,10 +73,10 @@ class _GroupChatHomeState extends State<GroupChatHome> {
             child: _isLoading
                 ? _buildLoadingState()
                 : _errorMessage != null
-                    ? _buildErrorState()
-                    : _groups.isEmpty
-                        ? _buildEmptyState()
-                        : _buildGroupList(),
+                ? _buildErrorState()
+                : _groups.isEmpty
+                ? _buildEmptyState()
+                : _buildGroupList(),
           ),
         ],
       ),
@@ -96,12 +93,7 @@ class _GroupChatHomeState extends State<GroupChatHome> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.green[50],
-        border: Border(
-          bottom: BorderSide(
-            color: Colors.green[200]!,
-            width: 1,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: Colors.green[200]!, width: 1)),
       ),
       child: Row(
         children: [
@@ -119,10 +111,7 @@ class _GroupChatHomeState extends State<GroupChatHome> {
           TextButton.icon(
             onPressed: _loadGroups,
             icon: Icon(Icons.refresh, size: 18, color: Colors.green[700]),
-            label: Text(
-              'Refresh',
-              style: TextStyle(color: Colors.green[700]),
-            ),
+            label: Text('Refresh', style: TextStyle(color: Colors.green[700])),
           ),
         ],
       ),
@@ -186,11 +175,7 @@ class _GroupChatHomeState extends State<GroupChatHome> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.group_off,
-              size: 80,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.group_off, size: 80, color: Colors.grey[400]),
             const SizedBox(height: 20),
             Text(
               'No Groups Yet',
@@ -204,10 +189,7 @@ class _GroupChatHomeState extends State<GroupChatHome> {
             Text(
               'Create a new group or wait for an invitation',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey[500]),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -216,7 +198,10 @@ class _GroupChatHomeState extends State<GroupChatHome> {
               label: const Text('Create Group'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green[700],
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 30,
+                  vertical: 14,
+                ),
               ),
             ),
           ],
@@ -242,9 +227,7 @@ class _GroupChatHomeState extends State<GroupChatHome> {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: Colors.green[100],
@@ -258,20 +241,14 @@ class _GroupChatHomeState extends State<GroupChatHome> {
         ),
         title: Text(
           group.groupName,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               '${group.members.length} members',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
             if (isCreator)
               Text(

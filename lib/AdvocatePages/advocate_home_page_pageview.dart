@@ -11,7 +11,7 @@ import 'package:provider/provider.dart';
 
 class AdvocateHomePage extends StatelessWidget {
   final bool? isShow;
-  
+
   const AdvocateHomePage({super.key, this.isShow});
 
   @override
@@ -27,14 +27,12 @@ class AdvocateHomePage extends StatelessWidget {
 
 class _AdvocateHomePageContent extends StatefulWidget {
   final bool showBackButton;
-  
-  const _AdvocateHomePageContent({
-    super.key,
-    required this.showBackButton,
-  });
+
+  const _AdvocateHomePageContent({super.key, required this.showBackButton});
 
   @override
-  State<_AdvocateHomePageContent> createState() => _AdvocateHomePageContentState();
+  State<_AdvocateHomePageContent> createState() =>
+      _AdvocateHomePageContentState();
 }
 
 class _AdvocateHomePageContentState extends State<_AdvocateHomePageContent> {
@@ -60,10 +58,10 @@ class _AdvocateHomePageContentState extends State<_AdvocateHomePageContent> {
   Future<void> getUserInfo() async {
     try {
       final id = await AuthService.getUserId();
-      
+
       if (id != null && id.isNotEmpty) {
         String? token = await AuthService.getToken();
-        
+
         final response = await http.get(
           Uri.parse('${BASE_URL.Urls().baseURL}user/search?userId=$id'),
           headers: {
@@ -175,7 +173,7 @@ class _AdvocateHomePageContentState extends State<_AdvocateHomePageContent> {
                     userId: userId!,
                     advocateId: null,
                     userName: userName ?? 'User',
-                    fullName: fullName ?? userName,
+                    //fullName: fullName ?? userName,
                   )
                 else
                   const Center(
@@ -202,10 +200,7 @@ class _AdvocateHomePageContentState extends State<_AdvocateHomePageContent> {
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
         elevation: 8,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Advocates',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Advocates'),
           BottomNavigationBarItem(
             icon: Icon(Icons.location_on),
             label: 'Live Location',

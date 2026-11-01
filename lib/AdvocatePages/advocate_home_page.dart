@@ -26,13 +26,15 @@ class _AdvocateHomePageContent extends StatefulWidget {
   const _AdvocateHomePageContent({super.key});
 
   @override
-  State<_AdvocateHomePageContent> createState() => _AdvocateHomePageContentState();
+  State<_AdvocateHomePageContent> createState() =>
+      _AdvocateHomePageContentState();
 }
 
 class _AdvocateHomePageContentState extends State<_AdvocateHomePageContent> {
   int _selectedIndex = 0;
   String? userId;
   String? userName;
+  String? fullName;
   bool _isLoading = true;
   late PageController _pageController;
 
@@ -52,10 +54,10 @@ class _AdvocateHomePageContentState extends State<_AdvocateHomePageContent> {
   Future<void> getUserInfo() async {
     try {
       final id = await AuthService.getUserId();
-      
+
       if (id != null && id.isNotEmpty) {
         String? token = await AuthService.getToken();
-        
+
         final response = await http.get(
           Uri.parse('${BASE_URL.Urls().baseURL}user/search?userId=$id'),
           headers: {
@@ -69,6 +71,7 @@ class _AdvocateHomePageContentState extends State<_AdvocateHomePageContent> {
           setState(() {
             userId = data['id'] ?? id;
             userName = data['name'] ?? 'User';
+            fullName = data['fullName'];
             _isLoading = false;
           });
         } else {
@@ -158,13 +161,14 @@ class _AdvocateHomePageContentState extends State<_AdvocateHomePageContent> {
               children: [
                 // Tab 0: Advocate Filter
                 const AdvocateFilterPage(),
-                
+
                 // Tab 1: Live Location
                 if (userId != null && userId!.isNotEmpty)
                   LiveLocationScreen(
                     userId: userId!,
                     advocateId: null,
                     userName: userName ?? 'User',
+                    fullName: fullName
                   )
                 else
                   const Center(
@@ -191,10 +195,7 @@ class _AdvocateHomePageContentState extends State<_AdvocateHomePageContent> {
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
         elevation: 8,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Advocates',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Advocates'),
           BottomNavigationBarItem(
             icon: Icon(Icons.location_on),
             label: 'Live Location',

@@ -14,6 +14,10 @@ import '../PageTransition.dart';
 import '../main.dart';
 import '../RegistrationPage/gender.dart';
 //import 'AdvocateFilter.dart';
+import 'advocate_working_experience_model.dart';
+import 'advocate_documents_model.dart';
+import 'advocate_additional_info_model.dart';
+import '../Utils/json_utils.dart';
 
 class AdvocateFilterPage extends StatefulWidget {
   const AdvocateFilterPage({super.key});
@@ -22,37 +26,91 @@ class AdvocateFilterPage extends StatefulWidget {
   State<AdvocateFilterPage> createState() => _AdvocateFilterPageState();
 }
 
-class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTickerProviderStateMixin {
+class _AdvocateFilterPageState extends State<AdvocateFilterPage>
+    with SingleTickerProviderStateMixin {
   // Filter Controllers
   AdvocateSpeciality? selectedSpeciality;
   String? selectedLocation;
   Gender? selectedGender;
   String _searchQuery = '';
-  
+
   // Data
   bool loading = true;
   List<AdvocateDetailsModel> list = [];
   List<AdvocateDetailsModel> filteredList = [];
-  
+
   // Animation
   late AnimationController _animationController;
-  
+
   List<String> allLocations = [
-    'Bagerhat', 'Bandarban', 'Barguna', 'Barisal', 'Bhola', 'Bogra',
-    'Brahmanbaria', 'Chandpur', 'Chapai Nawabganj', 'Chittagong', 'Chuadanga',
-    'Comilla', "Cox's Bazar", 'Dhaka', 'Dinajpur', 'Faridpur', 'Feni',
-    'Gaibandha', 'Gazipur', 'Gopalganj', 'Habiganj', 'Jamalpur', 'Jessore',
-    'Jhalokati', 'Jhenaidah', 'Joypurhat', 'Khagrachari', 'Khulna',
-    'Kishoreganj', 'Kurigram', 'Kushtia', 'Lakshmipur', 'Lalmonirhat',
-    'Madaripur', 'Magura', 'Manikganj', 'Meherpur', 'Moulvibazar',
-    'Munshiganj', 'Mymensingh', 'Naogaon', 'Narail', 'Narayanganj',
-    'Narsingdi', 'Natore', 'Netrokona', 'Nilphamari', 'Noakhali', 'Pabna',
-    'Panchagarh', 'Patuakhali', 'Pirojpur', 'Rajbari', 'Rajshahi',
-    'Rangamati', 'Rangpur', 'Satkhira', 'Shariatpur', 'Sherpur',
-    'Sirajganj', 'Sunamganj', 'Sylhet', 'Tangail', 'Thakurgaon'
+    'Bagerhat',
+    'Bandarban',
+    'Barguna',
+    'Barisal',
+    'Bhola',
+    'Bogra',
+    'Brahmanbaria',
+    'Chandpur',
+    'Chapai Nawabganj',
+    'Chittagong',
+    'Chuadanga',
+    'Comilla',
+    "Cox's Bazar",
+    'Dhaka',
+    'Dinajpur',
+    'Faridpur',
+    'Feni',
+    'Gaibandha',
+    'Gazipur',
+    'Gopalganj',
+    'Habiganj',
+    'Jamalpur',
+    'Jessore',
+    'Jhalokati',
+    'Jhenaidah',
+    'Joypurhat',
+    'Khagrachari',
+    'Khulna',
+    'Kishoreganj',
+    'Kurigram',
+    'Kushtia',
+    'Lakshmipur',
+    'Lalmonirhat',
+    'Madaripur',
+    'Magura',
+    'Manikganj',
+    'Meherpur',
+    'Moulvibazar',
+    'Munshiganj',
+    'Mymensingh',
+    'Naogaon',
+    'Narail',
+    'Narayanganj',
+    'Narsingdi',
+    'Natore',
+    'Netrokona',
+    'Nilphamari',
+    'Noakhali',
+    'Pabna',
+    'Panchagarh',
+    'Patuakhali',
+    'Pirojpur',
+    'Rajbari',
+    'Rajshahi',
+    'Rangamati',
+    'Rangpur',
+    'Satkhira',
+    'Shariatpur',
+    'Sherpur',
+    'Sirajganj',
+    'Sunamganj',
+    'Sylhet',
+    'Tangail',
+    'Thakurgaon',
   ];
 
-  final List<PageTransitionType> _smoothAnimations = AnimatedRoute.getCompanySafeAnimations();
+  final List<PageTransitionType> _smoothAnimations =
+      AnimatedRoute.getCompanySafeAnimations();
 
   @override
   void initState() {
@@ -78,7 +136,7 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
   void _navigateToMainPage() {
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const MyHomePage(title: 'উকিল চাই')),
+      MaterialPageRoute(builder: (context) => const MyHomePage(title: 'উকিল')),
       (route) => false,
     );
   }
@@ -101,54 +159,61 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
     try {
       final upper = genderString.toUpperCase();
       switch (upper) {
-        case 'MALE': return Gender.MALE;
-        case 'FEMALE': return Gender.FEMALE;
-        case 'OTHER': return Gender.OTHER;
-        default: return null;
+        case 'MALE':
+          return Gender.MALE;
+        case 'FEMALE':
+          return Gender.FEMALE;
+        case 'OTHER':
+          return Gender.OTHER;
+        default:
+          return null;
       }
     } catch (e) {
       return null;
     }
   }
+AdvocateDetailsModel _buildAdvocateModel(Map<String, dynamic> advocateDecoded) {
+  return AdvocateDetailsModel.defaultConstructor()
+    ..id = advocateDecoded["id"]?.toString()
+    ..userId = advocateDecoded["userId"]?.toString()
+    ..name = advocateDecoded["name"]?.toString()
+    ..fullName = advocateDecoded["fullName"]?.toString()
+    ..profileImageId = advocateDecoded["profileImageId"]?.toString()
+    ..experience = asInt(advocateDecoded["experience"])
+    ..licenseKey = advocateDecoded["licenseKey"]?.toString()
+    ..advocateSpeciality = asStringList(advocateDecoded["advocateSpeciality"])
+    ..degrees = asStringList(advocateDecoded["degrees"])
+    ..workingExperiences = asStringList(advocateDecoded["workingExperiences"])
+    ..email = advocateDecoded["email"]?.toString()
+    ..phone = advocateDecoded["phone"]?.toString()
+    ..locationName = advocateDecoded["locationName"]?.toString()
+    ..lattitude = asDouble(advocateDecoded["lattitude"])
+    ..longitude = asDouble(advocateDecoded["longitude"])
+    ..contactInfoId = advocateDecoded['contactInfoId']?.toString()
+    ..locationId = advocateDecoded['locationId']?.toString()
+    ..cvHexKey = advocateDecoded['cvHexKey']?.toString()
+    ..district = advocateDecoded['district']?.toString()
+    ..userGenderId = advocateDecoded['userGenderId']?.toString()
+    ..gender = _parseGender(advocateDecoded['gender']?.toString())
+    ..workingExperience = advocateDecoded['workingExperience'] != null
+        ? AdvocateWorkingExperience.fromJson(advocateDecoded['workingExperience'])
+        : null
+    ..advocateDocuments = advocateDecoded['advocateDocuments'] != null
+        ? AdvocateDocuments.fromJson(advocateDecoded['advocateDocuments'])
+        : null
+    ..additionalInfo = advocateDecoded['additionalInfo'] != null
+        ? AdvocateAdditionalInfo.fromJson(advocateDecoded['additionalInfo'])
+        : null;
+}
 
-  AdvocateDetailsModel _buildAdvocateModel(Map<String, dynamic> advocateDecoded) {
-    return AdvocateDetailsModel.defaultConstructor()
-      ..id = advocateDecoded["id"]?.toString()
-      ..userId = advocateDecoded["userId"]?.toString()
-      ..name = advocateDecoded["name"]?.toString()
-      ..fullName = advocateDecoded["fullName"]?.toString()
-      ..profileImageId = advocateDecoded["profileImageId"]?.toString()
-      ..experience = (advocateDecoded["experience"] ?? 0)
-      ..licenseKey = advocateDecoded["licenseKey"]?.toString()
-      ..advocateSpeciality = advocateDecoded["advocateSpeciality"] != null
-          ? List<String>.from(advocateDecoded["advocateSpeciality"].map((e) => e.toString()))
-          : []
-      ..degrees = advocateDecoded["degrees"] != null
-          ? List<String>.from(advocateDecoded["degrees"].map((e) => e.toString()))
-          : []
-      ..workingExperiences = advocateDecoded["workingExperiences"] != null
-          ? List<String>.from(advocateDecoded["workingExperiences"].map((e) => e.toString()))
-          : []
-      ..email = advocateDecoded["email"]?.toString()
-      ..phone = advocateDecoded["phone"]?.toString()
-      ..locationName = advocateDecoded["locationName"]?.toString()
-      ..lattitude = advocateDecoded["lattitude"] != null 
-          ? double.tryParse(advocateDecoded["lattitude"].toString()) 
-          : null
-      ..longitude = advocateDecoded["longitude"] != null 
-          ? double.tryParse(advocateDecoded["longitude"].toString()) 
-          : null
-      ..contactInfoId = advocateDecoded['contactInfoId']?.toString()
-      ..locationId = advocateDecoded['locationId']?.toString()
-      ..cvHexKey = advocateDecoded['cvHexKey']?.toString()
-      ..district = advocateDecoded['district']?.toString()
-      ..userGenderId = advocateDecoded['userGenderId']?.toString()
-      ..gender = _parseGender(advocateDecoded['gender']?.toString());
-  }
 
   // ============ API METHODS ============
   Future<void> getAdvocateList() async {
-    setState(() { loading = true; list.clear(); filteredList.clear(); });
+    setState(() {
+      loading = true;
+      list.clear();
+      filteredList.clear();
+    });
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('jwt_token') ?? '';
@@ -156,12 +221,16 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
         Uri.parse("${BASE_URL.Urls().baseURL}advocate/all"),
         headers: {"Authorization": "Bearer $token"},
       );
-      if (response.statusCode != 200) throw Exception("Failed to load advocates");
-      final List responseData = jsonDecode(response.body);
-      List<AdvocateDetailsModel> models = [];
-      for (final item in responseData) {
-        models.add(_buildAdvocateModel(item as Map<String, dynamic>));
-      }
+if (response.statusCode != 200) {
+  throw Exception("Failed to load advocates");
+}
+final responseData = decodeList(response.body);
+final models = <AdvocateDetailsModel>[];
+for (final item in responseData) {
+  if (item is Map<String, dynamic>) {
+    models.add(_buildAdvocateModel(item));
+  }
+}
       setState(() {
         list = models;
         _applyFilters();
@@ -170,100 +239,159 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
       });
     } catch (e) {
       debugPrint("Error loading advocates: $e");
-      setState(() { loading = false; list.clear(); filteredList.clear(); });
+      setState(() {
+        loading = false;
+        list.clear();
+        filteredList.clear();
+      });
     }
   }
 
   Future<void> fetchBySpeciality(AdvocateSpeciality speciality) async {
-    setState(() { loading = true; list.clear(); filteredList.clear(); });
+    setState(() {
+      loading = true;
+      list.clear();
+      filteredList.clear();
+    });
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('jwt_token') ?? '';
       final response = await http.get(
-        Uri.parse("${BASE_URL.Urls().baseURL}advocate/search/speciality/${speciality.name}"),
-        headers: {"Authorization": "Bearer $token", "content-type": "application/json"},
+        Uri.parse(
+          "${BASE_URL.Urls().baseURL}advocate/search/speciality/${speciality.name}",
+        ),
+        headers: {
+          "Authorization": "Bearer $token",
+          "content-type": "application/json",
+        },
       );
-      if (response.statusCode == 200) {
-        final List responseData = jsonDecode(response.body);
-        List<AdvocateDetailsModel> models = [];
-        for (final item in responseData) {
-          models.add(_buildAdvocateModel(item as Map<String, dynamic>));
-        }
+if (response.statusCode == 200) {
+  final responseData = decodeList(response.body);
+  final models = <AdvocateDetailsModel>[];
+  for (final item in responseData) {
+    if (item is Map<String, dynamic>) {
+      models.add(_buildAdvocateModel(item));
+    }
+  }
+  setState(() {
+    list = models;
+    _applyFilters();
+    loading = false;
+    _animationController.forward();
+  });
+} else {
         setState(() {
-          list = models;
-          _applyFilters();
           loading = false;
-          _animationController.forward();
+          list.clear();
+          filteredList.clear();
         });
-      } else {
-        setState(() { loading = false; list.clear(); filteredList.clear(); });
       }
     } catch (e) {
       debugPrint("Error fetching by speciality: $e");
-      setState(() { loading = false; list.clear(); filteredList.clear(); });
+      setState(() {
+        loading = false;
+        list.clear();
+        filteredList.clear();
+      });
     }
   }
 
   Future<void> fetchByLocation(String location) async {
-    setState(() { loading = true; list.clear(); filteredList.clear(); });
+    setState(() {
+      loading = true;
+      list.clear();
+      filteredList.clear();
+    });
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('jwt_token') ?? '';
       final response = await http.get(
         Uri.parse("${BASE_URL.Urls().baseURL}advocate/find/district/$location"),
-        headers: {"Authorization": "Bearer $token", "content-type": "application/json"},
+        headers: {
+          "Authorization": "Bearer $token",
+          "content-type": "application/json",
+        },
       );
-      if (response.statusCode == 200) {
-        final List responseData = jsonDecode(response.body);
-        List<AdvocateDetailsModel> models = [];
-        for (final item in responseData) {
-          models.add(_buildAdvocateModel(item as Map<String, dynamic>));
-        }
+if (response.statusCode == 200) {
+  final responseData = decodeList(response.body);
+  final models = <AdvocateDetailsModel>[];
+  for (final item in responseData) {
+    if (item is Map<String, dynamic>) {
+      models.add(_buildAdvocateModel(item));
+    }
+  }
+  setState(() {
+    list = models;
+    _applyFilters();
+    loading = false;
+    _animationController.forward();
+  });
+} else {
         setState(() {
-          list = models;
-          _applyFilters();
           loading = false;
-          _animationController.forward();
+          list.clear();
+          filteredList.clear();
         });
-      } else {
-        setState(() { loading = false; list.clear(); filteredList.clear(); });
       }
     } catch (e) {
       debugPrint("Location filter error: $e");
-      setState(() { loading = false; list.clear(); filteredList.clear(); });
+      setState(() {
+        loading = false;
+        list.clear();
+        filteredList.clear();
+      });
     }
   }
 
   Future<void> fetchByGender(Gender gender) async {
-    setState(() { loading = true; list.clear(); filteredList.clear(); });
+    setState(() {
+      loading = true;
+      list.clear();
+      filteredList.clear();
+    });
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('jwt_token') ?? '';
       final response = await http.get(
-        Uri.parse("${BASE_URL.Urls().baseURL}advocate/findByGender/${gender.displayName.toUpperCase()}"),
-        headers: {"Authorization": "Bearer $token", "content-type": "application/json"},
+        Uri.parse(
+          "${BASE_URL.Urls().baseURL}advocate/findByGender/${gender.displayName.toUpperCase()}",
+        ),
+        headers: {
+          "Authorization": "Bearer $token",
+          "content-type": "application/json",
+        },
       );
-      if (response.statusCode == 200) {
-        final List responseData = jsonDecode(response.body);
-        List<AdvocateDetailsModel> models = [];
-        for (final item in responseData) {
-          models.add(_buildAdvocateModel(item as Map<String, dynamic>));
-        }
-        setState(() {
-          list = models;
-          filteredList = models;
-          selectedGender = gender;
-          loading = false;
-          _animationController.forward();
-        });
-      } else if (response.statusCode == 404) {
-        setState(() { list = []; filteredList = []; loading = false; });
-      } else {
-        throw Exception("Failed to fetch advocates by gender");
-      }
+if (response.statusCode == 200) {
+  final responseData = decodeList(response.body);
+  final models = <AdvocateDetailsModel>[];
+  for (final item in responseData) {
+    if (item is Map<String, dynamic>) {
+      models.add(_buildAdvocateModel(item));
+    }
+  }
+  setState(() {
+    list = models;
+    filteredList = models;
+    selectedGender = gender;
+    loading = false;
+    _animationController.forward();
+  });
+} else if (response.statusCode == 404) {
+  setState(() {
+    list = [];
+    filteredList = [];
+    loading = false;
+  });
+} else {
+  throw Exception("Failed to fetch advocates by gender");
+}
     } catch (e) {
       debugPrint("Gender filter error: $e");
-      setState(() { loading = false; list.clear(); filteredList.clear(); });
+      setState(() {
+        loading = false;
+        list.clear();
+        filteredList.clear();
+      });
     }
   }
 
@@ -278,7 +406,11 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
   void _applyLocalFilters() {
     if (selectedLocation != null && selectedLocation!.isNotEmpty) {
       filteredList = filteredList
-          .where((adv) => adv.district == selectedLocation || adv.locationName == selectedLocation)
+          .where(
+            (adv) =>
+                adv.district == selectedLocation ||
+                adv.locationName == selectedLocation,
+          )
           .toList();
     }
     if (_searchQuery.isNotEmpty) {
@@ -287,7 +419,9 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
         final name = (adv.fullName ?? adv.name ?? '').toLowerCase();
         final speciality = adv.advocateSpeciality.join(' ').toLowerCase();
         final location = (adv.locationName ?? '').toLowerCase();
-        return name.contains(query) || speciality.contains(query) || location.contains(query);
+        return name.contains(query) ||
+            speciality.contains(query) ||
+            location.contains(query);
       }).toList();
     }
   }
@@ -313,25 +447,34 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
 
   Color _getGenderColor(Gender gender) {
     switch (gender) {
-      case Gender.MALE: return Colors.blue;
-      case Gender.FEMALE: return Colors.pink;
-      case Gender.OTHER: return Colors.purple;
+      case Gender.MALE:
+        return Colors.blue;
+      case Gender.FEMALE:
+        return Colors.pink;
+      case Gender.OTHER:
+        return Colors.purple;
     }
   }
 
   IconData _getGenderIcon(Gender gender) {
     switch (gender) {
-      case Gender.MALE: return Icons.male;
-      case Gender.FEMALE: return Icons.female;
-      case Gender.OTHER: return Icons.transgender;
+      case Gender.MALE:
+        return Icons.male;
+      case Gender.FEMALE:
+        return Icons.female;
+      case Gender.OTHER:
+        return Icons.transgender;
     }
   }
 
   String _getGenderDisplayName(Gender gender) {
     switch (gender) {
-      case Gender.MALE: return 'Male';
-      case Gender.FEMALE: return 'Female';
-      case Gender.OTHER: return 'Other';
+      case Gender.MALE:
+        return 'Male';
+      case Gender.FEMALE:
+        return 'Female';
+      case Gender.OTHER:
+        return 'Other';
     }
   }
 
@@ -349,22 +492,22 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
             children: [
               // Header
               _buildHeader(),
-              
+
               // Search Bar
               _buildSearchBar(),
-              
+
               // Stats and Filter Chips
               _buildStatsAndFilters(),
-              
+
               const SizedBox(height: 8),
-              
+
               // Content
               Expanded(
                 child: loading
                     ? _buildLoadingState()
                     : filteredList.isEmpty && list.isEmpty
-                        ? _buildEmptyState()
-                        : _buildAdvocateList(),
+                    ? _buildEmptyState()
+                    : _buildAdvocateList(),
               ),
             ],
           ),
@@ -374,7 +517,7 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
   }
 
   // ============ UI COMPONENTS ============
-  
+
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
@@ -386,11 +529,7 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
               color: Colors.purple.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              Icons.gavel,
-              color: Colors.purple,
-              size: 24,
-            ),
+            child: Icon(Icons.gavel, color: Colors.purple, size: 24),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -448,10 +587,7 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
           },
           decoration: InputDecoration(
             hintText: 'Search by name, speciality, or location...',
-            hintStyle: GoogleFonts.inter(
-              fontSize: 14,
-              color: Colors.grey[400],
-            ),
+            hintStyle: GoogleFonts.inter(fontSize: 14, color: Colors.grey[400]),
             prefixIcon: Icon(Icons.search, color: Colors.grey[400], size: 22),
             suffixIcon: _searchQuery.isNotEmpty
                 ? IconButton(
@@ -485,7 +621,8 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
             children: [
               _buildStatChip(
                 icon: Icons.people,
-                label: '${filteredList.isNotEmpty ? filteredList.length : list.length}',
+                label:
+                    '${filteredList.isNotEmpty ? filteredList.length : list.length}',
                 color: Colors.purple,
               ),
               const SizedBox(width: 8),
@@ -499,7 +636,10 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
                 GestureDetector(
                   onTap: _clearFilters,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.red.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -524,7 +664,7 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
             ],
           ),
           const SizedBox(height: 8),
-          
+
           // Filter Chips
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -544,12 +684,16 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
                 const SizedBox(width: 8),
                 _buildFilterChip(
                   label: 'Gender',
-                  value: selectedGender != null 
-                      ? _getGenderDisplayName(selectedGender!) 
+                  value: selectedGender != null
+                      ? _getGenderDisplayName(selectedGender!)
                       : 'All',
                   onTap: _showGenderPicker,
-                  icon: selectedGender != null 
-                      ? Icon(_getGenderIcon(selectedGender!), size: 14, color: _getGenderColor(selectedGender!))
+                  icon: selectedGender != null
+                      ? Icon(
+                          _getGenderIcon(selectedGender!),
+                          size: 14,
+                          color: _getGenderColor(selectedGender!),
+                        )
                       : null,
                 ),
               ],
@@ -657,10 +801,7 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
           const SizedBox(height: 16),
           Text(
             'Loading advocates...',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
+            style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[500]),
           ),
         ],
       ),
@@ -696,10 +837,7 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
           const SizedBox(height: 8),
           Text(
             'Try adjusting your filters or search criteria',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: Colors.grey[400],
-            ),
+            style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[400]),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
@@ -776,9 +914,9 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
               children: [
                 // Profile Image
                 _buildProfileImage(adv.profileImageId),
-                
+
                 const SizedBox(width: 14),
-                
+
                 // Advocate Info
                 Expanded(
                   child: Column(
@@ -801,9 +939,14 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
                           if (adv.gender != null) ...[
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                color: _getGenderColor(adv.gender!).withOpacity(0.1),
+                                color: _getGenderColor(
+                                  adv.gender!,
+                                ).withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
@@ -830,7 +973,7 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
                         ],
                       ),
                       const SizedBox(height: 6),
-                      
+
                       // Experience and Speciality
                       Wrap(
                         spacing: 8,
@@ -849,8 +992,9 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
                             ),
                         ],
                       ),
-                      
-                      if (adv.locationName != null && adv.locationName!.isNotEmpty)
+
+                      if (adv.locationName != null &&
+                          adv.locationName!.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Row(
@@ -877,7 +1021,7 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
                     ],
                   ),
                 ),
-                
+
                 // Arrow
                 Container(
                   padding: const EdgeInsets.all(6),
@@ -949,10 +1093,7 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
     );
   }
 
-  Widget _buildInfoChip({
-    required IconData icon,
-    required String label,
-  }) {
+  Widget _buildInfoChip({required IconData icon, required String label}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -966,10 +1107,7 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
           const SizedBox(width: 4),
           Text(
             label,
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              color: Colors.grey[600],
-            ),
+            style: GoogleFonts.inter(fontSize: 10, color: Colors.grey[600]),
           ),
         ],
       ),
@@ -977,7 +1115,7 @@ class _AdvocateFilterPageState extends State<AdvocateFilterPage> with SingleTick
   }
 
   // ============ PICKER METHODS ============
-  
+
   void _showSpecialityPicker() {
     showModalBottomSheet(
       context: context,
@@ -1182,17 +1320,14 @@ class FadeInUpAnimation extends StatefulWidget {
   final Widget child;
   final int delay;
 
-  const FadeInUpAnimation({
-    super.key,
-    required this.child,
-    this.delay = 0,
-  });
+  const FadeInUpAnimation({super.key, required this.child, this.delay = 0});
 
   @override
   State<FadeInUpAnimation> createState() => _FadeInUpAnimationState();
 }
 
-class _FadeInUpAnimationState extends State<FadeInUpAnimation> with SingleTickerProviderStateMixin {
+class _FadeInUpAnimationState extends State<FadeInUpAnimation>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -1204,15 +1339,14 @@ class _FadeInUpAnimationState extends State<FadeInUpAnimation> with SingleTicker
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
-    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
     Future.delayed(Duration(milliseconds: widget.delay), () {
       if (mounted) _controller.forward();
     });
@@ -1228,10 +1362,7 @@ class _FadeInUpAnimationState extends State<FadeInUpAnimation> with SingleTicker
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: widget.child,
-      ),
+      child: SlideTransition(position: _slideAnimation, child: widget.child),
     );
   }
 }
