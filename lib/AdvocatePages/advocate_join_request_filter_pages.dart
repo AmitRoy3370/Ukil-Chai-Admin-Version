@@ -370,8 +370,8 @@ class _AdvocateJoinRequestFilterPageState
                           vertical: 6,
                         ),
                         child: ListTile(
-                          onTap: () {
-                            Navigator.push(
+                          onTap: () async {
+                            bool result = await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => AdvocateJoinRequestDetails(
@@ -379,6 +379,9 @@ class _AdvocateJoinRequestFilterPageState
                                 ),
                               ),
                             );
+                            if(result == true) {
+                                 await getAdvocateList();     // fetch all
+                            }
                           },
                           leading: const Icon(Icons.person),
                           title: Text(

@@ -682,7 +682,7 @@ class AdvocateJoinRequestDetailsState
                 context,
               ).showSnackBar(const SnackBar(content: Text("Request Accepted")));
 
-              Navigator.pop(context);
+              Navigator.pop(context, true);
             } else {
               ScaffoldMessenger.of(
                 context,
